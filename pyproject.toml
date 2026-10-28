@@ -4,8 +4,8 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "epitope-screening"
-version = "0.1.0"
-description = "Offline MHC epitope screening and population coverage for Windows and Linux"
+version = "0.2.0"
+description = "IEDB online prediction and local epitope screening for Windows and Linux"
 readme = "README.md"
 requires-python = ">=3.11"
 dependencies = ["pandas>=2.2,<3", "numpy>=1.26,<3", "openpyxl>=3.1,<4"]

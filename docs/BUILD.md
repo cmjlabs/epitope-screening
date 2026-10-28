@@ -1,6 +1,6 @@
 # 跨平台构建
 
-固定验证环境为 Python 3.11 x64、Ubuntu 22.04 / Windows Server 2022 runner。CI 验证计算、非法输入、阈值边界、中文路径、取消、重复运行、桌面启动和打包后的命令行示例。它不代替用户电脑上的交互验收或历史论文结果核对。
+固定验证环境为 Python 3.11 x64、Ubuntu 22.04 / Windows Server 2022 runner。CI 使用公开 API 响应的固定快照做回归测试，默认不向官方服务提交网络任务。CI 验证计算、非法输入、阈值边界、中文路径、取消、重复运行、桌面启动和打包后的命令行示例。它不代替用户电脑上的交互验收或历史论文结果核对。
 
 ```bash
 python -m pip install -r requirements-build.txt

@@ -54,11 +54,15 @@ jobs:
         if: runner.os == 'Windows'
         run: |
           ./dist/EpitopeScreening/EpitopeScreening.exe --version
+          ./dist/EpitopeScreening/EpitopeScreening.exe default-prediction-config
+          ./dist/EpitopeScreening/EpitopeScreening.exe gui --smoke-test
           ./dist/EpitopeScreening/EpitopeScreening.exe run --fasta examples/protein.fasta --mhci examples/mhci.csv --mhcii examples/mhcii.csv --config examples/config.json --output frozen-results
       - name: Smoke-test frozen CLI (Linux)
         if: runner.os == 'Linux'
         run: |
           ./dist/EpitopeScreening/EpitopeScreening --version
+          ./dist/EpitopeScreening/EpitopeScreening default-prediction-config
+          xvfb-run -a ./dist/EpitopeScreening/EpitopeScreening gui --smoke-test
           ./dist/EpitopeScreening/EpitopeScreening run --fasta examples/protein.fasta --mhci examples/mhci.csv --mhcii examples/mhcii.csv --config examples/config.json --output frozen-results
       - name: Include instructions and example files
         shell: python

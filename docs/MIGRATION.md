@@ -1,6 +1,6 @@
 # 项目整理范围
 
-本项目是表位筛选的独立维护入口，原网站和原流水线保持在原目录。
+本项目是在线预测与本地表位筛选的独立维护入口，原网站和原流水线保持在原目录。
 
 | 原目录或模块 | 本项目对应位置 |
 |---|---|
@@ -8,7 +8,7 @@
 | lab-tools-v2/frontend/mhc.html、backend/routers/mhc.py | epitope_screening/gui.py，本地文件选择、进度、取消、结果持久化 |
 | population_coverage/ | epitope_screening/vendor/population_coverage/，计算器与频率数据 |
 | iedb-pipeline/data/class_I_allele_specific_cutoff.csv | epitope_screening/data/，当前相同快照 |
-| iedb-pipeline/pipeline/stage1_predict.py | 暂留原项目，依赖 IEDB 预测器与平台环境 |
+| iedb-pipeline/pipeline/stage1_predict.py | 原本地预测入口保留；新 epitope_screening/iedb_api.py 通过官方 API 提供同类预测 |
 | iedb-pipeline/pipeline/stage5_assess.py | 暂留原项目，理化性质评估不属于本次发布核心 |
 
 不复制服务器路由、用户账号、网站部署、原始研究数据、数 GB 历史输出、缓存或旧 exe。GitHub 仓库仅包含当前筛选工具所需的代码和固定数据、人工示例、测试、文档与构建流程。

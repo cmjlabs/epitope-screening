@@ -1,0 +1,896 @@
+{
+  "id": "363e584b-1a41-459e-b57e-1ff605b970eb",
+  "type": "result",
+  "data": {
+    "results": [
+      {
+        "type": "peptide_table",
+        "table_columns": [
+          {
+            "name": "sequence_number",
+            "type": "int",
+            "hidden": false,
+            "source": "core",
+            "sort_order": 0,
+            "description": "Index of the input sequence among all input sequences.",
+            "display_name": "seq #",
+            "value_limits": {
+              "max": 1.0,
+              "min": 1.0
+            },
+            "default_order": "ascending",
+            "row_sort_priority": 5
+          },
+          {
+            "name": "peptide",
+            "type": "text",
+            "hidden": false,
+            "source": "core",
+            "sort_order": 3,
+            "description": "Amino acid sequence",
+            "display_name": "peptide",
+            "value_limits": {
+              "unique_values": [
+                "MGQIVTMFEALPHII",
+                "GQIVTMFEALPHIID",
+                "QIVTMFEALPHIIDE",
+                "IVTMFEALPHIIDEV",
+                "VTMFEALPHIIDEVI",
+                "TMFEALPHIIDEVIN",
+                "MFEALPHIIDEVINI",
+                "FEALPHIIDEVINIV",
+                "EALPHIIDEVINIVI",
+                "ALPHIIDEVINIVII",
+                "LPHIIDEVINIVIIV",
+                "PHIIDEVINIVIIVL",
+                "HIIDEVINIVIIVLI",
+                "IIDEVINIVIIVLIV",
+                "IDEVINIVIIVLIVI",
+                "DEVINIVIIVLIVIT",
+                "EVINIVIIVLIVITG",
+                "VINIVIIVLIVITGI"
+              ]
+            },
+            "default_order": null,
+            "row_sort_priority": null
+          },
+          {
+            "name": "start",
+            "type": "int",
+            "hidden": false,
+            "source": "core",
+            "sort_order": 1,
+            "description": "Start position (1-based index) of the peptide within the full input sequence.",
+            "display_name": "start",
+            "value_limits": {
+              "max": 18.0,
+              "min": 1.0
+            },
+            "default_order": "ascending",
+            "row_sort_priority": 6
+          },
+          {
+            "name": "end",
+            "type": "int",
+            "hidden": false,
+            "source": "core",
+            "sort_order": 2,
+            "description": "End position (1-based index) of the peptide within the full input sequence.",
+            "display_name": "end",
+            "value_limits": {
+              "max": 32.0,
+              "min": 15.0
+            },
+            "default_order": "ascending",
+            "row_sort_priority": 7
+          },
+          {
+            "name": "length",
+            "type": "int",
+            "hidden": false,
+            "source": "core",
+            "sort_order": 4,
+            "description": "Peptide sequence length",
+            "display_name": "peptide length",
+            "value_limits": {
+              "max": 15.0,
+              "min": 15.0
+            },
+            "default_order": null,
+            "row_sort_priority": null
+          },
+          {
+            "name": "allele",
+            "type": "text",
+            "hidden": false,
+            "source": "core",
+            "sort_order": 5,
+            "description": "MHC allele used in the prediction",
+            "display_name": "allele",
+            "value_limits": {
+              "unique_values": [
+                "HLA-DRB1*01:01"
+              ]
+            },
+            "default_order": null,
+            "row_sort_priority": null
+          },
+          {
+            "name": "peptide_index",
+            "type": "int",
+            "hidden": true,
+            "source": "core",
+            "sort_order": 6,
+            "description": "Serial number of the peptide among all peptides",
+            "display_name": "peptide index",
+            "value_limits": {
+              "max": 18.0,
+              "min": 1.0
+            },
+            "default_order": null,
+            "row_sort_priority": null
+          },
+          {
+            "name": "median_percentile",
+            "type": "float",
+            "hidden": false,
+            "source": "binding/elution",
+            "sort_order": 2,
+            "description": "The median percentile rank of binding/elution predictions was calculated by using the adjusted percentiles when available, otherwise the standard percentiles",
+            "display_name": "median binding percentile",
+            "value_limits": {
+              "max": 95.0,
+              "min": 18.0
+            },
+            "default_order": "ascending",
+            "number_of_digits": null,
+            "row_sort_priority": 0
+          },
+          {
+            "name": "netmhciipan_ba-4.3_core",
+            "type": "text",
+            "hidden": false,
+            "source": "binding/elution",
+            "sort_order": 3,
+            "description": "Always 9 amino acids long sequence. It's a construction used for sequence alignment and identification of binding anchors.",
+            "display_name": "netmhciipan_ba-4.3 core",
+            "value_limits": {
+              "unique_values": [
+                "VTMFEALPH",
+                "MFEALPHII",
+                "FEALPHIID",
+                "HIIDEVINI",
+                "IIDEVINIV",
+                "INIVIIVLI",
+                "IVIIVLIVI",
+                "IIVLIVITG"
+              ]
+            },
+            "default_order": null,
+            "row_sort_priority": null
+          },
+          {
+            "name": "netmhciipan_ba-4.3_ic50",
+            "type": "float",
+            "hidden": false,
+            "source": "binding/elution",
+            "sort_order": 1,
+            "description": "Measured in (nM). Lower number indicates higher affinity.",
+            "display_name": "netmhciipan_ba-4.3 ic50",
+            "value_limits": {
+              "max": 7121.67,
+              "min": 58.87
+            },
+            "default_order": "ascending",
+            "number_of_digits": 2,
+            "row_sort_priority": 3
+          },
+          {
+            "name": "netmhciipan_ba-4.3_percentile",
+            "type": "float",
+            "hidden": false,
+            "source": "binding/elution",
+            "sort_order": 1,
+            "description": "The percentile rank generated by comparing the peptide's IC50/score against those of a set of random peptides from SWISSPROT database",
+            "display_name": "netmhciipan_ba-4.3 percentile",
+            "value_limits": {
+              "max": 95.0,
+              "min": 18.0
+            },
+            "default_order": "ascending",
+            "number_of_digits": null,
+            "row_sort_priority": 4
+          },
+          {
+            "name": "cd4episcore_core",
+            "type": "text",
+            "hidden": true,
+            "source": "immunogenicity.cd4episcore",
+            "sort_order": 3,
+            "description": "The 9amino acid peptide core used by immunogenicity Neural network model",
+            "display_name": "cd4episcore core",
+            "value_limits": {
+              "unique_values": [
+                "TMFEALPHI",
+                "VTMFEALPH",
+                "HIIDEVINI",
+                "EVINIVIIV",
+                "INIVIIVLI"
+              ]
+            },
+            "default_order": null,
+            "row_sort_priority": null
+          },
+          {
+            "name": "score",
+            "type": "float",
+            "hidden": false,
+            "source": "immunogenicity.cd4episcore",
+            "sort_order": 0,
+            "description": "'Immunogenicity Score' ranges from 0 to 100, with low values identifying more immunogenic peptides and high values non-immunogenic peptides.",
+            "display_name": "immunogenicity score",
+            "value_limits": {
+              "max": 96.9264,
+              "min": 91.0385
+            },
+            "default_order": "descending",
+            "number_of_digits": 5,
+            "row_sort_priority": 2
+          },
+          {
+            "name": "combined_score",
+            "type": "float",
+            "hidden": false,
+            "source": "immunogenicity.cd4episcore",
+            "sort_order": 0,
+            "description": "the Combined Score is given by combining both HLA binding and the immunogenicity prediction which presumably incorporate the capacity of being recognized by TCR. And low value identifying high capacity of being recognized by TCR.",
+            "display_name": "immunogenicity combined score",
+            "value_limits": {
+              "max": 94.8028,
+              "min": 49.00788
+            },
+            "default_order": "descending",
+            "number_of_digits": 5,
+            "row_sort_priority": 1
+          }
+        ],
+        "table_data": [
+          [
+            1,
+            "ALPHIIDEVINIVII",
+            10,
+            24,
+            15,
+            "HLA-DRB1*01:01",
+            10,
+            62.0,
+            "IIDEVINIV",
+            701.26,
+            62.0,
+            "HIIDEVINI",
+            92.1408,
+            74.05632
+          ],
+          [
+            1,
+            "DEVINIVIIVLIVIT",
+            16,
+            30,
+            15,
+            "HLA-DRB1*01:01",
+            16,
+            93.0,
+            "INIVIIVLI",
+            5620.72,
+            93.0,
+            "INIVIIVLI",
+            94.914,
+            93.7656
+          ],
+          [
+            1,
+            "EALPHIIDEVINIVI",
+            9,
+            23,
+            15,
+            "HLA-DRB1*01:01",
+            9,
+            66.0,
+            "IIDEVINIV",
+            871.23,
+            66.0,
+            "HIIDEVINI",
+            94.9348,
+            77.57392
+          ],
+          [
+            1,
+            "EVINIVIIVLIVITG",
+            17,
+            31,
+            15,
+            "HLA-DRB1*01:01",
+            17,
+            95.0,
+            "IVIIVLIVI",
+            7121.67,
+            95.0,
+            "INIVIIVLI",
+            94.507,
+            94.8028
+          ],
+          [
+            1,
+            "FEALPHIIDEVINIV",
+            8,
+            22,
+            15,
+            "HLA-DRB1*01:01",
+            8,
+            58.0,
+            "HIIDEVINI",
+            589.87,
+            58.0,
+            "HIIDEVINI",
+            96.1881,
+            73.27524
+          ],
+          [
+            1,
+            "GQIVTMFEALPHIID",
+            2,
+            16,
+            15,
+            "HLA-DRB1*01:01",
+            2,
+            18.0,
+            "MFEALPHII",
+            58.87,
+            18.0,
+            "TMFEALPHI",
+            95.5197,
+            49.00788
+          ],
+          [
+            1,
+            "HIIDEVINIVIIVLI",
+            13,
+            27,
+            15,
+            "HLA-DRB1*01:01",
+            13,
+            76.0,
+            "IIDEVINIV",
+            1494.73,
+            76.0,
+            "EVINIVIIV",
+            91.0385,
+            82.0154
+          ],
+          [
+            1,
+            "IDEVINIVIIVLIVI",
+            15,
+            29,
+            15,
+            "HLA-DRB1*01:01",
+            15,
+            93.0,
+            "INIVIIVLI",
+            5633.93,
+            93.0,
+            "INIVIIVLI",
+            95.5208,
+            94.00832
+          ],
+          [
+            1,
+            "IIDEVINIVIIVLIV",
+            14,
+            28,
+            15,
+            "HLA-DRB1*01:01",
+            14,
+            86.0,
+            "INIVIIVLI",
+            2946.5,
+            86.0,
+            "INIVIIVLI",
+            96.0918,
+            90.03672
+          ],
+          [
+            1,
+            "IVTMFEALPHIIDEV",
+            4,
+            18,
+            15,
+            "HLA-DRB1*01:01",
+            4,
+            19.0,
+            "MFEALPHII",
+            64.26,
+            19.0,
+            "TMFEALPHI",
+            96.3548,
+            49.94192
+          ],
+          [
+            1,
+            "LPHIIDEVINIVIIV",
+            11,
+            25,
+            15,
+            "HLA-DRB1*01:01",
+            11,
+            64.0,
+            "IIDEVINIV",
+            765.94,
+            64.0,
+            "HIIDEVINI",
+            94.5858,
+            76.23432
+          ],
+          [
+            1,
+            "MFEALPHIIDEVINI",
+            7,
+            21,
+            15,
+            "HLA-DRB1*01:01",
+            7,
+            46.0,
+            "FEALPHIID",
+            306.66,
+            46.0,
+            "HIIDEVINI",
+            94.872,
+            65.5488
+          ],
+          [
+            1,
+            "MGQIVTMFEALPHII",
+            1,
+            15,
+            15,
+            "HLA-DRB1*01:01",
+            1,
+            21.0,
+            "VTMFEALPH",
+            75.02,
+            21.0,
+            "TMFEALPHI",
+            95.714,
+            50.8856
+          ],
+          [
+            1,
+            "PHIIDEVINIVIIVL",
+            12,
+            26,
+            15,
+            "HLA-DRB1*01:01",
+            12,
+            66.0,
+            "IIDEVINIV",
+            857.98,
+            66.0,
+            "HIIDEVINI",
+            91.3519,
+            76.14076
+          ],
+          [
+            1,
+            "QIVTMFEALPHIIDE",
+            3,
+            17,
+            15,
+            "HLA-DRB1*01:01",
+            3,
+            18.0,
+            "MFEALPHII",
+            60.89,
+            18.0,
+            "TMFEALPHI",
+            96.4059,
+            49.36236
+          ],
+          [
+            1,
+            "TMFEALPHIIDEVIN",
+            6,
+            20,
+            15,
+            "HLA-DRB1*01:01",
+            6,
+            33.0,
+            "FEALPHIID",
+            155.53,
+            33.0,
+            "TMFEALPHI",
+            96.9264,
+            58.57056
+          ],
+          [
+            1,
+            "VINIVIIVLIVITGI",
+            18,
+            32,
+            15,
+            "HLA-DRB1*01:01",
+            18,
+            94.0,
+            "IIVLIVITG",
+            6584.02,
+            94.0,
+            "INIVIIVLI",
+            92.6769,
+            93.47076
+          ],
+          [
+            1,
+            "VTMFEALPHIIDEVI",
+            5,
+            19,
+            15,
+            "HLA-DRB1*01:01",
+            5,
+            24.0,
+            "FEALPHIID",
+            89.84,
+            24.0,
+            "VTMFEALPH",
+            95.7373,
+            52.69492
+          ]
+        ]
+      },
+      {
+        "type": "consolidated_peptide_table",
+        "table_columns": [
+          {
+            "name": "peptide",
+            "type": "text",
+            "hidden": false,
+            "source": "core",
+            "sort_order": 3,
+            "description": "Amino acid sequence",
+            "display_name": "peptide",
+            "value_limits": {
+              "unique_values": [
+                "ALPHIIDEVINIVII",
+                "DEVINIVIIVLIVIT",
+                "EALPHIIDEVINIVI",
+                "EVINIVIIVLIVITG",
+                "FEALPHIIDEVINIV",
+                "GQIVTMFEALPHIID",
+                "HIIDEVINIVIIVLI",
+                "IDEVINIVIIVLIVI",
+                "IIDEVINIVIIVLIV",
+                "IVTMFEALPHIIDEV",
+                "LPHIIDEVINIVIIV",
+                "MFEALPHIIDEVINI",
+                "MGQIVTMFEALPHII",
+                "PHIIDEVINIVIIVL",
+                "QIVTMFEALPHIIDE",
+                "TMFEALPHIIDEVIN",
+                "VINIVIIVLIVITGI",
+                "VTMFEALPHIIDEVI"
+              ]
+            },
+            "default_order": null,
+            "row_sort_priority": null
+          },
+          {
+            "name": "binding.netmhciipan_ba-4.3.percentile.hla-drb1*01:01",
+            "type": "float",
+            "hidden": true,
+            "source": "binding/elution",
+            "sort_order": 3,
+            "description": "The percentile rank generated by comparing the peptide's IC50/score against those of a set of random peptides from SWISSPROT database",
+            "display_name": "binding.netmhciipan_ba-4.3.percentile.HLA-DRB1*01:01",
+            "value_limits": {
+              "max": 95.0,
+              "min": 18.0
+            },
+            "default_order": "ascending",
+            "number_of_digits": null,
+            "row_sort_priority": null
+          },
+          {
+            "name": "overall_median_percentile",
+            "type": "float",
+            "hidden": false,
+            "source": "binding/elution",
+            "sort_order": 1,
+            "description": "The overall median percentile rank for each peptide across methods and alleles was calculated by using the adjusted percentiles when available, otherwise the standard percentiles",
+            "display_name": "overall median binding percentile",
+            "value_limits": {
+              "max": 95.0,
+              "min": 18.0
+            },
+            "default_order": "ascending",
+            "number_of_digits": null,
+            "row_sort_priority": 2
+          },
+          {
+            "name": "binding.median_percentile.hla-drb1*01:01",
+            "type": "float",
+            "hidden": true,
+            "source": "binding/elution",
+            "sort_order": 2,
+            "description": "The median percentile rank of binding/elution predictions by alleles was calculated by using the adjusted percentiles when available, otherwise the standard percentiles",
+            "display_name": "binding.median_percentile.HLA-DRB1*01:01",
+            "value_limits": {
+              "max": 95.0,
+              "min": 18.0
+            },
+            "default_order": "ascending",
+            "number_of_digits": null,
+            "row_sort_priority": null
+          },
+          {
+            "name": "global_median_percentile",
+            "type": "float",
+            "hidden": false,
+            "source": "binding/elution",
+            "sort_order": 1,
+            "description": "The median of the median binding percentiles by allele for each peptide",
+            "display_name": "global median binding percentile",
+            "value_limits": {
+              "max": 95.0,
+              "min": 18.0
+            },
+            "default_order": "ascending",
+            "number_of_digits": null,
+            "row_sort_priority": 3
+          },
+          {
+            "name": "score",
+            "type": "float",
+            "hidden": false,
+            "source": "immunogenicity.cd4episcore",
+            "sort_order": 0,
+            "description": "'Immunogenicity Score' ranges from 0 to 100, with low values identifying more immunogenic peptides and high values non-immunogenic peptides.",
+            "display_name": "immunogenicity score",
+            "value_limits": {
+              "max": 96.9264,
+              "min": 91.0385
+            },
+            "default_order": "descending",
+            "number_of_digits": 5,
+            "row_sort_priority": 1
+          },
+          {
+            "name": "combined_score",
+            "type": "float",
+            "hidden": false,
+            "source": "immunogenicity.cd4episcore",
+            "sort_order": 0,
+            "description": "the Combined Score is given by combining both HLA binding and the immunogenicity prediction which presumably incorporate the capacity of being recognized by TCR. And low value identifying high capacity of being recognized by TCR.",
+            "display_name": "immunogenicity combined score",
+            "value_limits": {
+              "max": 94.8028,
+              "min": 49.00788
+            },
+            "default_order": "descending",
+            "number_of_digits": 5,
+            "row_sort_priority": 0
+          }
+        ],
+        "table_data": [
+          [
+            "ALPHIIDEVINIVII",
+            62.0,
+            62.0,
+            62.0,
+            62.0,
+            92.1408,
+            74.05632
+          ],
+          [
+            "DEVINIVIIVLIVIT",
+            93.0,
+            93.0,
+            93.0,
+            93.0,
+            94.914,
+            93.7656
+          ],
+          [
+            "EALPHIIDEVINIVI",
+            66.0,
+            66.0,
+            66.0,
+            66.0,
+            94.9348,
+            77.57392
+          ],
+          [
+            "EVINIVIIVLIVITG",
+            95.0,
+            95.0,
+            95.0,
+            95.0,
+            94.507,
+            94.8028
+          ],
+          [
+            "FEALPHIIDEVINIV",
+            58.0,
+            58.0,
+            58.0,
+            58.0,
+            96.1881,
+            73.27524
+          ],
+          [
+            "GQIVTMFEALPHIID",
+            18.0,
+            18.0,
+            18.0,
+            18.0,
+            95.5197,
+            49.00788
+          ],
+          [
+            "HIIDEVINIVIIVLI",
+            76.0,
+            76.0,
+            76.0,
+            76.0,
+            91.0385,
+            82.0154
+          ],
+          [
+            "IDEVINIVIIVLIVI",
+            93.0,
+            93.0,
+            93.0,
+            93.0,
+            95.5208,
+            94.00832
+          ],
+          [
+            "IIDEVINIVIIVLIV",
+            86.0,
+            86.0,
+            86.0,
+            86.0,
+            96.0918,
+            90.03672
+          ],
+          [
+            "IVTMFEALPHIIDEV",
+            19.0,
+            19.0,
+            19.0,
+            19.0,
+            96.3548,
+            49.94192
+          ],
+          [
+            "LPHIIDEVINIVIIV",
+            64.0,
+            64.0,
+            64.0,
+            64.0,
+            94.5858,
+            76.23432
+          ],
+          [
+            "MFEALPHIIDEVINI",
+            46.0,
+            46.0,
+            46.0,
+            46.0,
+            94.872,
+            65.5488
+          ],
+          [
+            "MGQIVTMFEALPHII",
+            21.0,
+            21.0,
+            21.0,
+            21.0,
+            95.714,
+            50.8856
+          ],
+          [
+            "PHIIDEVINIVIIVL",
+            66.0,
+            66.0,
+            66.0,
+            66.0,
+            91.3519,
+            76.14076
+          ],
+          [
+            "QIVTMFEALPHIIDE",
+            18.0,
+            18.0,
+            18.0,
+            18.0,
+            96.4059,
+            49.36236
+          ],
+          [
+            "TMFEALPHIIDEVIN",
+            33.0,
+            33.0,
+            33.0,
+            33.0,
+            96.9264,
+            58.57056
+          ],
+          [
+            "VINIVIIVLIVITGI",
+            94.0,
+            94.0,
+            94.0,
+            94.0,
+            92.6769,
+            93.47076
+          ],
+          [
+            "VTMFEALPHIIDEVI",
+            24.0,
+            24.0,
+            24.0,
+            24.0,
+            95.7373,
+            52.69492
+          ]
+        ]
+      },
+      {
+        "type": "input_sequence_table",
+        "table_columns": [
+          {
+            "name": "sequence_number",
+            "display_name": "seq #",
+            "type": "int",
+            "source": "core",
+            "sort_order": 0,
+            "row_sort_priority": 0,
+            "default_order": "ascending",
+            "description": "the index of sequence",
+            "hidden": false
+          },
+          {
+            "name": "sequence_name",
+            "display_name": "sequence name",
+            "type": "text",
+            "source": "core",
+            "sort_order": 0,
+            "row_sort_priority": null,
+            "default_order": null,
+            "description": "the name of sequence",
+            "hidden": false
+          },
+          {
+            "name": "sequence",
+            "display_name": "sequence",
+            "type": "text",
+            "source": "core",
+            "sort_order": 0,
+            "row_sort_priority": null,
+            "default_order": null,
+            "description": "sequence",
+            "hidden": false
+          }
+        ],
+        "table_data": [
+          [
+            1,
+            "LCMV Armstrong, Protein GP",
+            "MGQIVTMFEALPHIIDEVINIVIIVLIVITGI"
+          ]
+        ]
+      }
+    ],
+    "errors": [],
+    "warnings": []
+  },
+  "status": "done"
+}

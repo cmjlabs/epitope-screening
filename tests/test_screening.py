@@ -1,5 +1,8 @@
 from dataclasses import replace
 import json
+import os
+import subprocess
+import sys
 from pathlib import Path
 import tempfile
 import threading
@@ -34,6 +37,12 @@ class ScreeningTests(unittest.TestCase):
         with self.assertRaisesRegex(ValueError, '不匹配'):
             normalize_table(frame, 'I', SEQUENCE)
 
+    def test_duplicate_column_names_are_rejected(self):
+        frame = read_table(ROOT / 'examples/mhci.csv')
+        frame[' IC50 '] = 25
+        with self.assertRaisesRegex(ValueError, '重复列名'):
+            normalize_table(frame, 'I', SEQUENCE)
+
     def test_missing_scores_are_not_silently_accepted(self):
         frame = read_table(ROOT / 'examples/mhci.csv')
         frame.loc[0, 'score'] = float('nan')
@@ -57,7 +66,10 @@ class ScreeningTests(unittest.TestCase):
             params = Settings(use_allele_cutoff=False)
             a, counts, _ = filter_table(frame, 'I', params, None, base / 'one')
             b, _, _ = filter_table(frame, 'I', replace(params, score_i_strict_min=True), None, base / 'two')
-            self.assertEqual(len(a), 2)
+            self.assertEqual(counts['step3_score_min'], 2)
+            self.assertEqual(len(a), 1)
+            self.assertEqual(a.iloc[0].score, 0)
+            self.assertEqual(b.iloc[0].score, 1)
             self.assertEqual(len(b), 1)
             self.assertEqual(counts['step1_ic50'], 2)
 
@@ -104,6 +116,16 @@ class ScreeningTests(unittest.TestCase):
             empty = report['all_windows'].iloc[-1]
             self.assertEqual(empty.mhc1_coverage, 0)
             self.assertTrue((a / 'mhci/step1_ic50.csv').exists())
+
+    def test_cli_with_legacy_redirected_encoding(self):
+        with tempfile.TemporaryDirectory() as folder:
+            environment = dict(os.environ, PYTHONIOENCODING='ascii')
+            result = subprocess.run([sys.executable, '-m', 'epitope_screening', 'run',
+                '--fasta', str(ROOT / 'examples/protein.fasta'), '--mhci', str(ROOT / 'examples/mhci.csv'),
+                '--mhcii', str(ROOT / 'examples/mhcii.csv'), '--output', folder],
+                cwd=ROOT, env=environment, capture_output=True)
+            self.assertEqual(result.returncode, 0, result.stderr.decode('utf-8', errors='replace'))
+            self.assertIn('完成', result.stdout.decode('utf-8'))
 
     def test_cutoff_is_required_when_enabled(self):
         with tempfile.TemporaryDirectory() as folder:

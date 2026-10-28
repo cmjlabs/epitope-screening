@@ -9,6 +9,10 @@ from .core import Settings, run_analysis, populations
 
 
 def main():
+    # Redirected Windows streams can otherwise use a legacy code page.
+    for stream in (sys.stdout, sys.stderr):
+        if stream is not None and hasattr(stream, "reconfigure"):
+            stream.reconfigure(encoding="utf-8")
     parser = argparse.ArgumentParser(description='Offline MHC epitope screening for Windows and Linux')
     parser.add_argument('--version', action='version', version=__version__)
     commands = parser.add_subparsers(dest='command')

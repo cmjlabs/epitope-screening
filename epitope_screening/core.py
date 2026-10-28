@@ -9,6 +9,8 @@ import platform
 import re
 import uuid
 
+import numpy as np
+import openpyxl
 import pandas as pd
 
 from . import __version__
@@ -95,7 +97,10 @@ def read_table(path):
 
 def normalize_table(table, mhc_class, sequence):
     """Accept normalized columns or the IEDB BA export; reject ambiguous models."""
-    columns = {str(c).strip().lower(): c for c in table.columns}
+    normalized_columns = [str(c).strip().lower() for c in table.columns]
+    if len(set(normalized_columns)) != len(normalized_columns):
+        raise ValueError('预测表包含重复列名，请先明确需要使用的列。')
+    columns = dict(zip(normalized_columns, table.columns))
     required = {'peptide': 'peptide', 'allele': 'allele', 'start': 'start', 'end': 'end'}
     for field, suffix in [('ic50', 'ic50'), ('rank', 'percentile'), ('score', 'immunogenicity score')]:
         if field in columns:
@@ -181,7 +186,7 @@ def filter_table(frame, mhc_class, settings, cutoff_path, output):
     frame = save('step3_score_min', frame[mask])
     frame = save('step4_score_max', frame[frame.score <= getattr(settings, 'score_' + tag + '_max')])
     frame['allele'] = frame.allele.map(split_alleles)
-    frame = frame.explode('allele').drop_duplicates().reset_index(drop=True)
+    frame = frame.explode('allele').drop_duplicates(subset=['peptide', 'start', 'end', 'allele']).reset_index(drop=True)
     save('final', frame)
     return frame, counts, warnings
 
@@ -241,7 +246,7 @@ def run_analysis(fasta, mhci, mhcii, output_root, settings=None, cutoff=None, pr
     output = Path(output_root).resolve() / f'{timestamp}_{uuid.uuid4().hex[:8]}'
     output.mkdir(parents=True, exist_ok=False)
     manifest = {'status': 'running', 'version': __version__, 'python': platform.python_version(), 'platform': platform.platform(),
-                'dependencies': {'pandas': pd.__version__}, 'settings': asdict(settings),
+                'dependencies': {'pandas': pd.__version__, 'numpy': np.__version__, 'openpyxl': openpyxl.__version__}, 'settings': asdict(settings),
                 'inputs': {name: {'path': str(path.resolve()), 'sha256': hashes[name]} for name, path in input_files.items()},
                 'frequency_data_sha256': sha256(FREQUENCIES), 'coverage_unit': 'fraction_0_to_1',
                 'coordinate_system': '1-based inclusive', 'warnings': []}

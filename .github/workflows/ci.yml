@@ -1,0 +1,84 @@
+name: Cross-platform checks and packages
+on:
+  push:
+  pull_request:
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  test:
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-22.04, windows-2022]
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+          cache: pip
+          cache-dependency-path: requirements.txt
+      - run: python -m pip install -r requirements.txt
+      - run: python -m pip install --no-deps .
+      - run: python -m unittest discover -s tests -v
+      - name: Desktop smoke test (Windows)
+        if: runner.os == 'Windows'
+        run: python -c "import tkinter as tk; from epitope_screening.gui import Application; r=tk.Tk(); a=Application(r); r.update(); r.destroy()"
+      - name: Desktop smoke test (Linux)
+        if: runner.os == 'Linux'
+        run: xvfb-run -a python -c "import tkinter as tk; from epitope_screening.gui import Application; r=tk.Tk(); a=Application(r); r.update(); r.destroy()"
+      - name: Run example
+        run: python -m epitope_screening run --fasta examples/protein.fasta --mhci examples/mhci.csv --mhcii examples/mhcii.csv --config examples/config.json --output results
+      - uses: actions/upload-artifact@v4
+        with:
+          name: example-results-${{ runner.os }}
+          path: results/
+  package:
+    needs: test
+    if: github.event_name != 'pull_request'
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-22.04, windows-2022]
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - run: python -m pip install -r requirements-build.txt
+      - run: python -m build
+      - run: python -m PyInstaller --clean --noconfirm EpitopeScreening.spec
+      - name: Smoke-test frozen CLI (Windows)
+        if: runner.os == 'Windows'
+        run: |
+          ./dist/EpitopeScreening/EpitopeScreening.exe --version
+          ./dist/EpitopeScreening/EpitopeScreening.exe run --fasta examples/protein.fasta --mhci examples/mhci.csv --mhcii examples/mhcii.csv --config examples/config.json --output frozen-results
+      - name: Smoke-test frozen CLI (Linux)
+        if: runner.os == 'Linux'
+        run: |
+          ./dist/EpitopeScreening/EpitopeScreening --version
+          ./dist/EpitopeScreening/EpitopeScreening run --fasta examples/protein.fasta --mhci examples/mhci.csv --mhcii examples/mhcii.csv --config examples/config.json --output frozen-results
+      - name: Include instructions and example files
+        shell: python
+        run: |
+          from pathlib import Path
+          import shutil
+          for name in ['README.md', 'THIRD_PARTY.md', 'docs', 'examples']:
+              p = Path(name)
+              destination = Path('dist/EpitopeScreening') / name
+              if p.is_dir():
+                  shutil.copytree(p, destination)
+              else:
+                  shutil.copy2(p, destination)
+      - uses: actions/upload-artifact@v4
+        with:
+          name: EpitopeScreening-${{ runner.os }}-x64
+          path: dist/EpitopeScreening/
+      - uses: actions/upload-artifact@v4
+        with:
+          name: python-package-${{ runner.os }}
+          path: |
+            dist/*.whl
+            dist/*.tar.gz

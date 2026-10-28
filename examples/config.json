@@ -1,0 +1,16 @@
+{
+  "min_window": 20,
+  "max_window": 30,
+  "population": "World",
+  "coverage_threshold": 0.8,
+  "use_allele_cutoff": true,
+  "ic50_i": 500,
+  "rank_i": 2,
+  "score_i_min": 0,
+  "score_i_max": 100,
+  "score_i_strict_min": false,
+  "ic50_ii": 1000,
+  "rank_ii": 10,
+  "score_ii_min": -100,
+  "score_ii_max": 66
+}

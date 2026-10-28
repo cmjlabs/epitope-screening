@@ -1,0 +1,20 @@
+[build-system]
+requires = ["setuptools>=68", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "epitope-screening"
+version = "0.1.0"
+description = "Offline MHC epitope screening and population coverage for Windows and Linux"
+readme = "README.md"
+requires-python = ">=3.11"
+dependencies = ["pandas>=2.2,<3", "numpy>=1.26,<3", "openpyxl>=3.1,<4"]
+
+[project.scripts]
+epitope-screening = "epitope_screening.__main__:main"
+
+[tool.setuptools.packages.find]
+include = ["epitope_screening*"]
+
+[tool.setuptools.package-data]
+epitope_screening = ["data/*.csv", "vendor/population_coverage/README.txt", "vendor/population_coverage/population_coverage_pickle/*.p.gz"]

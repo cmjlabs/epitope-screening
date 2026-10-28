@@ -1,0 +1,3 @@
+allele,peptide,start,end,ic50,percentile,score
+HLA-A*02:01,ACDEFGHIK,1,9,10,0.1,0.2
+HLA-A*01:01,CDEFGHIKL,2,10,100,0.5,0.1

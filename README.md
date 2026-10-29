@@ -8,7 +8,9 @@ Windows / Linux 桌面软件：**FASTA → IEDB 官方 API 预测 → 本地阈�
 
 ### 可执行版本（推荐）
 
-在仓库 **Actions → 最新成功运行 → Artifacts** 下载 `EpitopeScreening-Windows-x64`，完整解压到可写文件夹，双击 `EpitopeScreening.exe`。必须保留同目录的 `_internal` 文件夹。无需自行安装 Python；请核对下载包版本；0.2 的 exe 产物须等当前代码上传并通过 Windows 自动测试和打包后才会出现。
+在仓库 [Releases](https://github.com/cmjlabs/epitope-screening/releases) 下载最新版本的 Windows x64 ZIP，完整解压到可写文件夹，双击 `EpitopeScreening.exe`。必须保留同目录的 `_internal` 文件夹。无需自行安装 Python。Actions 中也保留对应提交的构建产物。
+
+**v0.2.1 修复 MHC-II 默认 HLA 名称被接口拒绝的问题。** 在旧版遇到该错误时，请保留原任务目录，用新版选择同一 FASTA、原参数及「恢复在线任务目录」后继续，已完成的 MHC-I 不会重新提交。见[恢复说明](docs/ONLINE.md#恢复-v020-的-mhc-ii-hla-名称错误)。
 
 1. 默认选择「从 FASTA 在线预测并筛选」。
 2. 选择一个单蛋白 FASTA 和输出文件夹；**无需准备 MHC-I / II 预测表**。

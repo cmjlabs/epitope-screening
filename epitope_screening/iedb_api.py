@@ -8,6 +8,7 @@ import hashlib
 import json
 import math
 from pathlib import Path
+import shutil
 import threading
 import time
 import urllib.error
@@ -42,6 +43,15 @@ class APIError(ValueError):
 
 def canonical_allele(value):
     return value.upper().replace('HLA-', '').replace(' ', '')
+
+
+def api_allele(value):
+    """Translate local HLA aliases to the official API spelling, including pairs."""
+    name = canonical_allele(value)
+    if name.startswith(('A*', 'B*', 'C*', 'E*', 'F*', 'G*', 'DRA*', 'DRB1*',
+                        'DRB3*', 'DRB4*', 'DRB5*', 'DQA1*', 'DQB1*', 'DPA1*', 'DPB1*')):
+        return 'HLA-' + name
+    return value.strip()
 
 
 @dataclass
@@ -134,7 +144,7 @@ class APIClient:
 
 def build_payload(sequence, group, alleles, prediction):
     tag = 'i' if group == 'mhci' else 'ii'
-    parameters = {'alleles': ','.join(alleles),
+    parameters = {'alleles': ','.join(api_allele(a) for a in alleles),
                   'peptide_length_range': [getattr(prediction, 'min_length_' + tag), getattr(prediction, 'max_length_' + tag)],
                   'predictors': [{'type': 'binding', 'method': getattr(prediction, 'method_' + tag)}]}
     parameters['predictors'].append({'type': 'immunogenicity', 'mask_choice': 'default'} if tag == 'i' else {'type': 'immunogenicity', 'method': 'cd4episcore'})
@@ -190,8 +200,33 @@ def predict_batch(client, payload, folder, prediction, progress, stop):
     folder.mkdir(parents=True, exist_ok=True)
     request_file, submitted_file = folder / 'request.json', folder / 'submitted.json'
     marker = folder / 'submission_state.json'
-    if request_file.exists() and json.loads(request_file.read_text(encoding='utf-8')) != payload:
-        raise APIError('恢复任务的请求参数与原任务不同。')
+    if request_file.exists():
+        previous = json.loads(request_file.read_text(encoding='utf-8'))
+        if previous != payload:
+            # v0.2.0 sent local DR/DQ/DP aliases without HLA-. Repair only a
+            # confirmed invalid-allele rejection with NO remote job ID. Never
+            # resubmit a successful or ambiguous request, or change its model.
+            equivalent = json.loads(json.dumps(previous))
+            try:
+                parameters = equivalent['stages'][0]['input_parameters']
+                parameters['alleles'] = ','.join(api_allele(a) for a in parameters['alleles'].split(','))
+            except (KeyError, IndexError, TypeError, AttributeError):
+                equivalent = None
+            rejected = json.loads(submitted_file.read_text(encoding='utf-8')) if submitted_file.exists() else {}
+            errors = rejected.get('errors')
+            invalid_alias = (isinstance(errors, list) and errors and
+                             all(isinstance(e, str) and e.startswith('The following are not valid alleles:') for e in errors))
+            if (equivalent != payload or not invalid_alias or rejected.get('result_id') or
+                    (folder / 'result.json').exists()):
+                raise APIError('恢复任务的请求参数与原任务不同。')
+            archive = folder / ('rejected_' + uuid.uuid4().hex[:8])
+            archive.mkdir()
+            for record in (request_file, submitted_file, marker):
+                if record.exists():
+                    shutil.copy2(record, archive / record.name)
+            submitted_file.unlink()
+            marker.unlink(missing_ok=True)
+            progress('已保留旧版 HLA 格式拒绝记录；修正名称后重新提交未创建远程任务的批次。')
     write_json(request_file, payload)
     check_cancel(stop)
     if submitted_file.exists():
@@ -275,7 +310,8 @@ def run_online(fasta, output_root, settings=None, prediction=None, cutoff=None, 
         raise ValueError('任务内的 FASTA 快照被修改。')
     if settings.use_allele_cutoff and sha256(output / 'cutoff.csv') != plan['cutoff_sha256']:
         raise ValueError('任务内的 cutoff 快照被修改。')
-    manifest.update(status='running', last_started_at=datetime.now(timezone.utc).isoformat())
+    manifest.update(status='running', last_started_at=datetime.now(timezone.utc).isoformat(),
+                    last_run_version=__version__)
     manifest.pop('error', None)
     manifest_path = output / 'pipeline_manifest.json'
     write_json(manifest_path, manifest)

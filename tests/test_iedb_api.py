@@ -39,6 +39,20 @@ class FakeClient:
 
 
 class APITests(unittest.TestCase):
+    def test_default_panel_aliases_are_formatted_for_api(self):
+        prediction = PredictionSettings()
+        request = build_payload(SEQUENCE, 'mhcii', prediction.alleles_ii, prediction)
+        names = request['stages'][0]['input_parameters']['alleles'].split(',')
+        self.assertEqual(len(names), 27)
+        self.assertEqual(names[0], 'HLA-DRB1*01:01')
+        self.assertEqual(names[15], 'HLA-DQA1*05:01/DQB1*02:01')
+        self.assertEqual(names[-1], 'HLA-DPA1*02:01/DPB1*14:01')
+        # Both chain-prefix conventions denote the same human molecule.
+        paired = build_payload(SEQUENCE, 'mhcii', ['HLA-DQA1*05:01/HLA-DQB1*02:01'], prediction)
+        self.assertEqual(paired['stages'][0]['input_parameters']['alleles'], names[15])
+        self.assertEqual(build_payload(SEQUENCE, 'mhci', ['H2-Kb'], prediction)
+                         ['stages'][0]['input_parameters']['alleles'], 'H2-Kb')
+
     def test_exact_model_and_immunogenicity_requests(self):
         request = build_payload(SEQUENCE, 'mhcii', SMALL.alleles_ii, SMALL)
         p = request['stages'][0]['input_parameters']
@@ -130,6 +144,58 @@ class APITests(unittest.TestCase):
             with self.assertRaises(Cancelled):
                 predict_batch(Pending(), build_payload(SEQUENCE, 'mhci', SMALL.alleles_i, SMALL), Path(folder), SMALL, lambda m: None, stop)
             self.assertTrue((Path(folder) / 'submitted.json').exists())
+
+    def test_v020_invalid_allele_resume_reuses_mhci_and_preserves_rejection(self):
+        prediction = replace(SMALL, alleles_ii=['DRB1*01:01'])
+        class LegacyClient(FakeClient):
+            def request(self, path, payload=None):
+                if payload['stages'][0]['input_parameters']['alleles'] == 'DRB1*01:01':
+                    self.posts.append(payload)
+                    return {'errors': ['The following are not valid alleles: DRB1*01:01']}
+                return super().request(path, payload)
+        def legacy_payload(sequence, group, alleles, config):
+            request = build_payload(sequence, group, alleles, config)
+            request['stages'][0]['input_parameters']['alleles'] = ','.join(alleles)
+            return request
+        with tempfile.TemporaryDirectory() as folder:
+            client = LegacyClient()
+            params = Settings(min_window=20, max_window=20)
+            with patch('epitope_screening.iedb_api.build_payload', side_effect=legacy_payload):
+                with self.assertRaisesRegex(APIError, '拒绝任务'):
+                    run_online(ROOT / 'examples/public_lcmv.fasta', folder, params, prediction, client=client)
+            output = next(Path(folder).glob('online_*'))
+            original_mhci = (output / 'predictions/mhci_000/result.json').read_bytes()
+            run_online(ROOT / 'examples/public_lcmv.fasta', folder, params, prediction, resume=output, client=client)
+            self.assertEqual(len(client.posts), 3)  # I succeeded, II rejected, corrected II only
+            self.assertEqual(client.posts[-1]['stages'][0]['input_parameters']['alleles'], 'HLA-DRB1*01:01')
+            self.assertEqual((output / 'predictions/mhci_000/result.json').read_bytes(), original_mhci)
+            archived = list((output / 'predictions/mhcii_000').glob('rejected_*/submitted.json'))
+            self.assertEqual(len(archived), 1)
+            self.assertIn('not valid alleles', archived[0].read_text())
+            self.assertEqual(json.loads((output / 'pipeline_manifest.json').read_text())['status'], 'complete')
+            run_online(ROOT / 'examples/public_lcmv.fasta', folder, params, prediction, resume=output, client=client)
+            self.assertEqual(len(client.posts), 3)
+
+    def test_alias_repair_refuses_unknown_or_confirmed_jobs_and_model_changes(self):
+        for state in ('unknown', 'confirmed', 'different-model'):
+            with self.subTest(state=state), tempfile.TemporaryDirectory() as directory:
+                folder = Path(directory)
+                prediction = replace(SMALL, alleles_ii=['DRB1*01:01'])
+                payload = build_payload(SEQUENCE, 'mhcii', prediction.alleles_ii, prediction)
+                old = deepcopy(payload)
+                old['stages'][0]['input_parameters']['alleles'] = 'DRB1*01:01'
+                (folder / 'request.json').write_text(json.dumps(old))
+                rejected = {'errors': ['The following are not valid alleles: DRB1*01:01']}
+                if state == 'confirmed':
+                    rejected['result_id'] = 'already-submitted'
+                if state != 'unknown':
+                    (folder / 'submitted.json').write_text(json.dumps(rejected))
+                if state == 'different-model':
+                    payload['stages'][0]['input_parameters']['predictors'][0]['method'] = 'netmhciipan_ba-4.2'
+                client = FakeClient()
+                with self.assertRaises(APIError):
+                    predict_batch(client, payload, folder, prediction, lambda m: None, None)
+                self.assertEqual(client.posts, [])
 
     def test_only_idempotent_gets_are_retried(self):
         client = APIClient()

@@ -1,0 +1,11 @@
+# Isolated IEDB TC1/TC2 runtime (Python 3.11); do not install into the desktop venv.
+numpy==1.26.4
+pandas==1.5.2
+PyYAML==6.0.2
+requests==2.32.3
+openpyxl==3.1.5
+setuptools==79.0.1
+tqdm==4.67.1
+tabulate==0.9.0
+pyarrow==17.0.0
+scipy==1.14.1

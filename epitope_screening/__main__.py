@@ -35,6 +35,14 @@ def main():
     online.add_argument('--cutoff', type=Path)
     online.add_argument('--resume', type=Path, help='Existing online task directory')
     online.add_argument('--proxy', help='Optional HTTP proxy URL without credentials')
+    local = commands.add_parser('local', help='Linux local IEDB TC1/TC2 prediction and screening')
+    local.add_argument('--fasta', required=True, type=Path)
+    local.add_argument('--tools-config', type=Path, default=Path('local-tools.json'))
+    local.add_argument('--prediction-config', type=Path)
+    local.add_argument('--config', type=Path)
+    local.add_argument('--cutoff', type=Path)
+    local.add_argument('--output', type=Path, default=Path('results'))
+    local.add_argument('--resume', type=Path)
     args = parser.parse_args()
     if args.command in (None, 'gui'):
         from .gui import main as gui_main
@@ -51,7 +59,13 @@ def main():
             config = json.loads(args.config.read_text(encoding='utf-8-sig')) if args.config else {}
             settings = Settings(**config)
             progress = lambda percent, message: print(f'[{percent:3d}%] {message}', flush=True)
-            if args.command == 'online':
+            if args.command == 'local':
+                from .iedb_api import PredictionSettings
+                from .local_iedb import run_local
+                prediction = PredictionSettings(**(json.loads(args.prediction_config.read_text(encoding='utf-8-sig')) if args.prediction_config else {}))
+                tools_config = json.loads(args.tools_config.read_text(encoding='utf-8-sig'))
+                run_local(args.fasta, args.output, tools_config, settings, prediction, args.cutoff, progress=progress, resume=args.resume)
+            elif args.command == 'online':
                 from .iedb_api import PredictionSettings, run_online
                 prediction = PredictionSettings(**(json.loads(args.prediction_config.read_text(encoding='utf-8-sig')) if args.prediction_config else {}))
                 if args.proxy is not None:

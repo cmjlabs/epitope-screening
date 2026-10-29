@@ -1,6 +1,7 @@
 """A local desktop UI. All Tk operations stay on the main thread."""
 from dataclasses import asdict, fields
 import json
+import os
 from pathlib import Path
 import queue
 import threading
@@ -37,27 +38,30 @@ class Application:
         box = ttk.Frame(root, padding=16)
         box.pack(fill='both', expand=True)
         ttk.Label(box, text='表位筛选与人群覆盖率分析', font=('', 16, 'bold')).pack(anchor='w')
-        ttk.Label(box, text='在线模式：FASTA 发送至 IEDB 官方服务器预测，筛选在本机完成；离线模式：导入已有预测表。').pack(anchor='w', pady=(4, 8))
+        ttk.Label(box, text='在线：IEDB 官方 API；本地预测：Linux TC1/TC2；导入表：已有结果筛选。').pack(anchor='w', pady=(4, 8))
         modes = ttk.Frame(box)
         modes.pack(fill='x')
-        self.mode = tk.StringVar(value='online')
+        self.mode = tk.StringVar(value='local' if os.environ.get('EPITOPE_DEFAULT_MODE') == 'local' else 'online')
         ttk.Radiobutton(modes, text='从 FASTA 在线预测并筛选', variable=self.mode, value='online').pack(side='left')
         ttk.Radiobutton(modes, text='导入预测表离线筛选', variable=self.mode, value='offline').pack(side='left', padx=15)
+        ttk.Radiobutton(modes, text='Linux 本地预测', variable=self.mode, value='local').pack(side='left')
         tabs = ttk.Notebook(box)
         tabs.pack(fill='x', pady=8)
         input_page, filter_page = ttk.Frame(tabs), ttk.Frame(tabs)
-        tabs.add(input_page, text='输入与在线预测')
+        tabs.add(input_page, text='输入与预测')
         tabs.add(filter_page, text='本地筛选参数')
         files = ttk.LabelFrame(input_page, text='输入与输出', padding=8)
         files.pack(fill='x')
-        for index, (name, label) in enumerate([('fasta', '蛋白 FASTA'), ('mhci', 'MHC-I 预测表'), ('mhcii', 'MHC-II 预测表'), ('cutoff', 'cutoff CSV（留空用内置表）'), ('output', '结果保存文件夹'), ('resume', '恢复在线任务目录（可选）')]):
+        for index, (name, label) in enumerate([('fasta', '蛋白 FASTA'), ('mhci', 'MHC-I 预测表'), ('mhcii', 'MHC-II 预测表'), ('cutoff', 'cutoff CSV（留空用内置表）'), ('output', '结果保存文件夹'), ('resume', '恢复同一后端的任务目录（可选）'), ('local_tools', '本地工具配置 JSON（仅 Linux 本地预测）')]):
             var = tk.StringVar(value=str(Path.home() / 'EpitopeScreeningResults') if name == 'output' else '')
             self.paths[name] = var
+            if name == 'local_tools' and (Path.cwd()/'local-tools.json').is_file():
+                var.set(str(Path.cwd()/'local-tools.json'))
             ttk.Label(files, text=label).grid(row=index, column=0, sticky='w', padx=4, pady=3)
             ttk.Entry(files, textvariable=var).grid(row=index, column=1, sticky='ew', padx=4)
             ttk.Button(files, text='选择', command=lambda n=name: self.choose(n)).grid(row=index, column=2, padx=4)
         files.columnconfigure(1, weight=1)
-        online = ttk.LabelFrame(input_page, text='在线预测参数（离线模式不使用）', padding=8)
+        online = ttk.LabelFrame(input_page, text='预测参数（导入表模式不使用；本地预测不使用代理）', padding=8)
         online.pack(fill='x', pady=(8, 0))
         self.prediction = PredictionSettings()
         self.api_fields = {}
@@ -122,6 +126,8 @@ class Application:
             types = [('FASTA', '*.fasta *.fa *.faa')] if name == 'fasta' else [('预测数据', '*.xlsx *.csv *.tsv *.txt')]
             if name == 'cutoff':
                 types = [('CSV', '*.csv')]
+            if name == 'local_tools':
+                types = [('JSON', '*.json')]
             path = filedialog.askopenfilename(filetypes=types + [('所有文件', '*')])
         if path:
             self.paths[name].set(path)
@@ -195,10 +201,15 @@ class Application:
             settings = self.get_settings()
             paths = {key: value.get().strip() for key, value in self.paths.items()}
             online_mode = self.mode.get() == 'online'
-            required = ('fasta', 'output') if online_mode else ('fasta', 'mhci', 'mhcii', 'output')
+            local_mode = self.mode.get() == 'local'
+            required = ('fasta', 'output', 'local_tools') if local_mode else (('fasta', 'output') if online_mode else ('fasta', 'mhci', 'mhcii', 'output'))
             if any(not paths[key] for key in required):
                 raise ValueError('请选择 FASTA、结果文件夹；离线模式还需要两张预测表。')
-            prediction = self.get_prediction() if online_mode else None
+            prediction = self.get_prediction() if online_mode or local_mode else None
+            if local_mode:
+                from .local_iedb import validate_runtime
+                local_config = json.loads(Path(paths['local_tools']).read_text(encoding='utf-8-sig'))
+                validate_runtime(local_config)
             if prediction:
                 from .core import read_sequence
                 prediction.validate(len(read_sequence(paths['fasta'])))
@@ -213,7 +224,11 @@ class Application:
         def work():
             try:
                 callback = lambda p, m: self.events.put(('progress', p, m))
-                if online_mode:
+                if local_mode:
+                    from .local_iedb import run_local
+                    result = run_local(paths['fasta'], paths['output'], local_config, settings, prediction,
+                                       paths['cutoff'] or None, progress=callback, stop=self.stop, resume=paths['resume'] or None)
+                elif online_mode:
                     result = run_online(paths['fasta'], paths['output'], settings, prediction, paths['cutoff'] or None,
                                         progress=callback, stop=self.stop, resume=paths['resume'] or None)
                 else:

@@ -6,3 +6,7 @@ build/
 dist/
 results/
 *.log
+.local-bootstrap/
+.local-runtime/
+.venv-local-tools/
+local-tools.json

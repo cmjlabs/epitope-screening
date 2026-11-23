@@ -43,10 +43,22 @@ def main():
     local.add_argument('--cutoff', type=Path)
     local.add_argument('--output', type=Path, default=Path('results'))
     local.add_argument('--resume', type=Path)
+    web = commands.add_parser('web', help='Open the local browser application')
+    web.add_argument('--data-dir', type=Path)
+    web.add_argument('--port', type=int, default=0)
+    web.add_argument('--no-browser', action='store_true')
     args = parser.parse_args()
     if args.command in (None, 'gui'):
         from .gui import main as gui_main
         gui_main(smoke_test=getattr(args, 'smoke_test', False))
+    elif args.command == 'web':
+        from .web_app import main as web_main
+        options = ['--port',str(args.port)]
+        if args.data_dir:
+            options += ['--data-dir',str(args.data_dir)]
+        if args.no_browser:
+            options += ['--no-browser']
+        web_main(options)
     elif args.command == 'populations':
         print('\n'.join(populations()))
     elif args.command == 'default-prediction-config':

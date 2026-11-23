@@ -22,6 +22,19 @@ from .core import DATA, Settings, Cancelled, read_sequence, normalize_table, run
 from .iedb_api import PredictionSettings, canonical_allele, api_allele, write_json, check_cancel
 
 
+def external_environment():
+    """Keep bundled Python libraries out of system programs and predictor venvs."""
+    env = dict(os.environ, PYTHONNOUSERSITE='1')
+    if getattr(sys, 'frozen', False):
+        if env.get('LD_LIBRARY_PATH_ORIG'):
+            env['LD_LIBRARY_PATH'] = env['LD_LIBRARY_PATH_ORIG']
+        else:
+            env.pop('LD_LIBRARY_PATH', None)
+        env.pop('PYTHONHOME', None)
+        env.pop('PYTHONPATH', None)
+    return env
+
+
 def tool_files(root):
     return sorted(p for p in Path(root).rglob('*') if p.is_file() and '__pycache__' not in p.parts)
 
@@ -117,7 +130,7 @@ def validate_runtime(config):
         raise ValueError('本地 workers 需为 1–8。')
     probe = subprocess.run([str(paths['python']), '-c',
         'import sys,pandas,numpy; assert sys.version_info[:2]==(3,11); assert pandas.__version__=="1.5.2"; assert numpy.__version__=="1.26.4"'],
-        capture_output=True, text=True, timeout=30)
+        capture_output=True, text=True, timeout=30, env=external_environment())
     if probe.returncode:
         raise ValueError('本地工具运行环境需为 Python 3.11、pandas 1.5.2、numpy 1.26.4；请运行 setup_local_linux.sh 配置独立环境。')
     return paths, workers
@@ -125,7 +138,8 @@ def validate_runtime(config):
 
 def execute_job(command, folder, stop):
     """Cancel the complete native predictor process group, without using a shell."""
-    env = dict(os.environ, PYTHONDONTWRITEBYTECODE='1', OMP_NUM_THREADS='1', OPENBLAS_NUM_THREADS='1')
+    env = external_environment()
+    env.update(PYTHONDONTWRITEBYTECODE='1', OMP_NUM_THREADS='1', OPENBLAS_NUM_THREADS='1')
     with (folder / 'run.log').open('w', encoding='utf-8') as log:
         process = subprocess.Popen(command, stdout=log, stderr=subprocess.STDOUT, env=env, start_new_session=True)
         started = time.monotonic()

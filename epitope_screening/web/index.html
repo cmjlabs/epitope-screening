@@ -1,0 +1,70 @@
+<!doctype html>
+<html lang="zh-CN"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>表位筛选工作台</title><link rel="stylesheet" href="style.css"><script src="app.js" defer></script></head>
+<body>
+<div class="app-shell">
+<aside class="sidebar"><a class="brand" href="#"><span class="brand-icon">E</span><span>表位筛选<small>EPITOPE SCREENING</small></span></a>
+<div class="workspace-label">本地研究工作台</div>
+<nav aria-label="主导航"><button class="nav active" data-view="analysis"><span>＋</span>新建分析</button><button class="nav" data-view="history"><span>◷</span>任务记录</button><button class="nav" data-view="setup"><span>⚙</span>首次配置<span id="setup-dot" class="dot"></span></button><button class="nav" data-view="guide"><span>?</span>使用说明</button></nav>
+<div class="sidebar-bottom"><div class="privacy-icon">◉</div><strong>你的电脑，你的数据</strong><p>本地模式在这台电脑计算。<br>在线模式会明确提示发送序列。</p><div class="version" id="version">正在连接本机程序…</div></div>
+</aside>
+<div class="main-area"><header class="topbar"><span class="crumb">工作台 <span>/</span> <b id="page-name">新建分析</b></span><div class="top-actions"><span class="connection" id="connection"><i></i>连接中</span><button class="text-button" id="quit">退出程序</button></div></header>
+<main>
+<div id="notice" class="notice" role="status" hidden></div>
+<section class="view" id="view-analysis">
+<div class="page-heading"><div><span class="eyebrow">从序列到候选多肽</span><h1>开始一次表位分析</h1><p>准备一条蛋白序列，选择运行方式，其余交给工作台。</p></div><button class="secondary" id="demo">试用离线演示 <span>↗</span></button></div>
+<div class="demo-caption">第一次使用？演示使用人工构造的数据，不下载模型，也不发送序列。</div>
+<div class="analysis-grid"><div class="form-column">
+<form id="analysis-form">
+<section class="card"><div class="section-title"><span class="step">01</span><div><h2>选择运行方式</h2><p>三种方式使用相同的本地筛选与覆盖率计算。</p></div></div>
+<div class="mode-grid">
+<label class="mode-card"><input type="radio" name="mode" value="local" checked><span class="mode-top"><b>本地预测</b><em>Linux</em></span><span>FASTA 开始 · 配置一次后可断网</span></label>
+<label class="mode-card"><input type="radio" name="mode" value="online"><span class="mode-top"><b>IEDB 在线</b><em>免模型</em></span><span>FASTA 开始 · 需要互联网</span></label>
+<label class="mode-card"><input type="radio" name="mode" value="offline"><span class="mode-top"><b>导入预测表</b><em>离线</em></span><span>已有 MHC-I / MHC-II 结果</span></label>
+</div><div class="inline-info" id="mode-note">正在检查本地环境…</div><label class="check-line online-only" hidden><input id="online-consent" type="checkbox">我确认将蛋白序列和预测参数发送至 IEDB 官方服务器。</label>
+</section>
+<section class="card"><div class="section-title"><span class="step">02</span><div><h2>准备输入</h2><p>一次分析一条蛋白。仅支持 20 种标准氨基酸。</p></div></div>
+<label class="field">任务名称 <span class="optional">可选</span><input id="task-name" placeholder="例如：gB 表位筛选" maxlength="80"></label>
+<div class="sequence-head"><label for="fasta-text">蛋白序列</label><button type="button" class="text-button" id="load-example">载入公开试跑序列</button></div>
+<textarea id="fasta-text" rows="5" spellcheck="false" placeholder=">protein_name&#10;MGQIVTMFEALPHIIDEVINIVIIVLIVITGI"></textarea>
+<div class="file-row"><label class="file-select">或选择 FASTA 文件<input id="fasta-file" type="file" accept=".fasta,.fa,.faa,.txt"></label><span id="fasta-file-name" class="file-name">未选择文件</span></div>
+<div class="offline-only" hidden><div class="two-col"><label class="field">MHC-I 预测表<input id="mhci-file" type="file" accept=".csv,.tsv,.txt,.xlsx" class="file-input"></label><label class="field">MHC-II 预测表<input id="mhcii-file" type="file" accept=".csv,.tsv,.txt,.xlsx" class="file-input"></label></div><p class="help">预测表需要 peptide、allele、start、end、ic50、rank / percentile 和免疫原性 score。缺少评分时会提示，不会跳过筛选。</p></div>
+</section>
+<section class="card"><div class="section-title"><span class="step">03</span><div><h2>确认参数</h2><p>初次试用可保留默认值。论文分析请使用已核定的参数。</p></div></div>
+<div class="predict-only"><label class="field">HLA 面板<select id="preset"><option value="full">标准面板 · MHC-I 27 个 + MHC-II 27 个</option><option value="small">快速试跑 · 每类 1 个 HLA（仅验证流程）</option><option value="custom">自定义 · 在高级参数中编辑</option></select></label></div>
+<div class="three-col"><label class="field">最小窗口 / aa<input type="number" data-setting="min_window" min="1" step="1" value="20"></label><label class="field">最大窗口 / aa<input type="number" data-setting="max_window" min="1" step="1" value="30"></label><label class="field">双类覆盖率下限<input type="number" data-setting="coverage_threshold" min="0" max="1" step="0.01" value="0.8"></label></div>
+<label class="field">覆盖率人群<select data-setting="population" id="population"><option>World</option></select></label>
+<details id="advanced"><summary>高级参数 <span>HLA、肽长、阈值与参数文件</span></summary>
+<div class="predict-only"><div class="two-col"><label class="field">MHC-I HLA（逗号分隔）<textarea id="alleles-i" rows="4"></textarea></label><label class="field">MHC-II HLA（逗号分隔）<textarea id="alleles-ii" rows="4"></textarea></label></div>
+<div class="two-col"><label class="field">MHC-I 肽长下限<input type="number" data-prediction="min_length_i" min="8" max="15"></label><label class="field">MHC-I 肽长上限<input type="number" data-prediction="max_length_i" min="8" max="15"></label><label class="field">MHC-II 肽长下限<input type="number" data-prediction="min_length_ii" min="11" max="30"></label><label class="field">MHC-II 肽长上限<input type="number" data-prediction="max_length_ii" min="11" max="30"></label></div>
+<p class="help">模型：NetMHCpan BA / NetMHCIIpan BA 4.3；另计算免疫原性评分。CD4Episcore 仅对 15 aa 验证过。单 HLA 试跑通常无法达到 0.8 覆盖率。</p></div>
+<div class="two-col"><label class="field">MHC-I IC50 上限 / nM<input type="number" data-setting="ic50_i"></label><label class="field">MHC-II IC50 上限 / nM<input type="number" data-setting="ic50_ii"></label><label class="field">MHC-I rank 上限 / %<input type="number" data-setting="rank_i"></label><label class="field">MHC-II rank 上限 / %<input type="number" data-setting="rank_ii"></label><label class="field">MHC-I score 下限<input type="number" data-setting="score_i_min" step="any"></label><label class="field">MHC-I score 上限<input type="number" data-setting="score_i_max" step="any"></label><label class="field">MHC-II score 下限<input type="number" data-setting="score_ii_min" step="any"></label><label class="field">MHC-II score 上限<input type="number" data-setting="score_ii_max" step="any"></label></div>
+<label class="check-line"><input type="checkbox" data-setting="use_allele_cutoff" checked>MHC-I 使用等位基因专属 IC50 cutoff（优先于统一上限）</label><label class="check-line"><input type="checkbox" data-setting="score_i_strict_min">MHC-I score 严格大于下限</label>
+<label class="field">自定义 cutoff CSV <span class="optional">留空使用内置表</span><input type="file" id="cutoff-file" accept=".csv" class="file-input"></label>
+<div class="parameter-actions"><label class="file-select">导入筛选参数 JSON<input id="settings-import" type="file" accept=".json"></label><button type="button" class="secondary compact" id="settings-export">导出筛选参数</button><label class="file-select">导入预测参数 JSON<input id="prediction-import" type="file" accept=".json"></label><button type="button" class="secondary compact" id="prediction-export">导出预测参数</button></div>
+<p class="help">历史论文参数尚未核定。软件默认值不代表当年的方法，切换模式不会自动替换缺失评分或更改模型。</p>
+</details>
+<div class="submit-row"><span id="run-hint">本地环境准备好后即可运行。</span><button class="primary" id="start" type="submit">开始分析 <span>→</span></button></div>
+</section></form></div>
+<aside class="result-column"><section class="card task-card" id="task-panel"><div class="status-heading"><h2>当前任务</h2><span class="badge neutral" id="task-status">等待开始</span></div><h3 id="task-title">分析结果将显示在这里</h3><p id="task-message">可以先点击“试用离线演示”，熟悉完整流程。</p><progress id="task-progress" value="0" max="100"></progress><div class="progress-meta"><span id="task-percent">0%</span><span id="task-time">尚未开始</span></div>
+<div class="metrics" id="task-metrics" hidden><div><strong id="window-count">—</strong><span>扫描窗口</span></div><div><strong id="selected-count">—</strong><span>候选窗口</span></div></div>
+<div class="result-actions" id="result-actions" hidden><button class="primary full" id="download-excel">下载 Excel 报告 ↓</button><button class="secondary full" id="download-csv">下载候选 CSV</button></div><div class="task-controls"><button class="secondary compact" id="cancel" hidden>取消分析</button><button class="secondary compact" id="resume" hidden>恢复 / 重新导出</button></div>
+<details class="logs-detail"><summary>查看运行日志</summary><pre id="task-logs">暂无日志</pre></details><p class="help" id="empty-result" hidden>当前阈值下没有候选。Excel 仍保留全窗口和筛选数据，可用于检查输入与参数。</p></section>
+<section class="hint-card"><div class="mini-label">流程</div><ol class="flow-list"><li><span>01</span>获取或导入预测结果</li><li><span>02</span>按阈值筛选两类表位</li><li><span>03</span>生成窗口与覆盖率</li><li><span>04</span>导出 Excel / CSV 报告</li></ol><p>本地任务完成后会自动保存。关闭浏览器不会删除结果。</p></section></aside></div>
+<section class="card preview-card" id="preview-card" hidden><h2>候选预览 <span class="optional">最多显示 30 行，完整数据见报告</span></h2><div class="table-scroll"><table id="preview-table"></table></div></section>
+</section>
+<section class="view" id="view-history" hidden><div class="page-heading"><div><span class="eyebrow">记录可追溯</span><h1>任务记录</h1><p>已保存的任务留在本机。预测任务中断后，可从记录中恢复。</p></div></div><div class="card" id="history-list"><p class="empty-state">还没有分析任务。</p></div></section>
+<section class="view" id="view-setup" hidden><div class="page-heading"><div><span class="eyebrow">首次配置 · 仅需一次</span><h1>准备本地预测环境</h1><p>由程序处理下载、解压和运行环境，不需要手动配置 Python。</p></div><span id="setup-badge" class="badge neutral">未配置</span></div>
+<div class="setup-grid"><section class="card"><div class="section-title"><span class="step">01</span><div><h2>检查这台电脑</h2><p>自动配置面向 Ubuntu / Debian、Linux x86_64。</p></div></div><div id="system-checks" class="checks"></div><p class="help">首次配置建议至少预留 12 GB 磁盘空间；官方下载量约 2.4 GB。安装系统组件时可能出现系统授权窗口，密码不会交给网页。</p><div class="data-location"><span>数据与模型保存位置</span><code id="data-dir">连接后显示</code><button class="text-button" id="copy-path">复制路径</button></div></section>
+<section class="card"><div class="section-title"><span class="step">02</span><div><h2>准备 IEDB 工具</h2><p>官方工具单独获取，不包含在 GitHub 程序包中。</p></div></div><p class="body-text">支持 TC1 v0.2-beta 与 TC2 v0.2.3-beta。请先阅读 <a href="https://nextgen-tools.iedb.org/download-all" target="_blank" rel="noreferrer">IEDB 下载与许可说明 ↗</a>。</p>
+<label class="check-line"><input id="license-consent" type="checkbox">我已阅读官方许可，并确认我有权使用这些工具。</label><label class="check-line"><input id="system-consent" type="checkbox">若缺少组件，允许程序调用系统授权安装 tcsh、gawk、Perl、R 和证书组件。</label><button class="primary full" id="setup-download">下载并配置官方工具 <span>↓</span></button>
+<details><summary>我已经下载了官方工具包</summary><p class="help">选择对应版本的原始 .tar.gz 文件，无需手动解压。文件只传给这台电脑上的程序。</p><label class="field">TC1 v0.2-beta 工具包<input id="tc1-file" type="file" accept=".gz" class="file-input"></label><label class="field">TC2 v0.2.3-beta 工具包<input id="tc2-file" type="file" accept=".gz" class="file-input"></label><button class="secondary full" id="setup-import">导入并配置</button><div class="official-links"><a href="https://downloads.iedb.org/nextgen-tools/tcell_mhci/v0.2-beta/IEDB_NG_TC1-v0.2-beta.tar.gz" target="_blank" rel="noreferrer">官方 TC1 对应版本</a><a href="https://downloads.iedb.org/nextgen-tools/tcell_mhcii/v0.2.3-beta/IEDB_NG_TC2-v0.2.3-beta.tar.gz" target="_blank" rel="noreferrer">官方 TC2 对应版本</a></div></details>
+<button class="text-button" id="setup-check">已经配置？重新检查</button></section></div>
+<section class="card setup-progress"><div class="status-heading"><h2 id="setup-stage">等待开始配置</h2><span id="setup-percent">0%</span></div><progress id="setup-progress" value="0" max="100"></progress><p class="help">首次配置期间请保持启动程序运行。失败后可以重试，已下载的完整文件会校验后复用。</p><details><summary>查看配置日志</summary><pre id="setup-logs">暂无日志</pre></details></section></section>
+<section class="view" id="view-guide" hidden><div class="page-heading"><div><span class="eyebrow">从下载到第一份报告</span><h1>使用说明</h1><p>不需要了解命令行，也不需要启动作者的电脑或网站。</p></div></div><article class="card guide-content">
+<h2>第一次打开</h2><ol><li>在 GitHub Releases 下载 <b>Linux 网页版压缩包</b>，完整解压。请保留 <code>_internal</code> 文件夹。若下载页显示 404，请先登录有仓库读取权限的 GitHub 账号。</li><li>双击 <b>Start-Web</b>。浏览器会自动打开本机操作页面。如系统要求权限，在文件属性中勾选“允许作为程序执行”。不要把单独的 HTML 当成预测器启动。</li><li>先点击“试用离线演示”，确认能生成和下载报告。演示数据是人工构造的，不用于论文结论。</li><li>要从 FASTA 本地预测，进入“首次配置”，阅读官方许可，按提示确认后点击“下载并配置官方工具”。需要安装系统组件时，在系统弹出的窗口授权。</li></ol>
+<h2>开始正式分析</h2><ol><li>选择运行方式。本地预测配置一次后可断网；IEDB 在线需要联网并确认发送序列；导入表模式需要已有两张预测表。</li><li>输入一个任务名称，选择单蛋白 FASTA，或者粘贴氨基酸序列。不要上传基因组或多条蛋白的合并文件。</li><li>核对 HLA 面板、肽长、窗口、人群及阈值。默认窗口 20–30 aa，两类覆盖率分别至少 0.8。快速试跑只有每类一个 HLA，仅用于验证流程。</li><li>点击“开始分析”。大蛋白、多 HLA、多肽长的任务可能计算较久，每批完成后会更新进度；运行日志保留详细状态。</li><li>完成后下载 Excel。<code>selected_windows</code> 是候选，<code>all_windows</code> 是全部窗口，另外两张表为筛选后的 MHC-I/MHC-II 表位。覆盖率为 0–1。</li></ol>
+<h2>常见问题</h2><details open><summary>关闭网页后，任务还在吗？</summary><p>关闭浏览器不会删除结果，也不会关闭本机程序。再次双击 Start-Web 可重新打开页面。运行或首次配置时请保留启动程序；需要结束时先取消任务，再点右上角“退出程序”。</p></details><details><summary>为什么没有候选？</summary><p>无候选可能是当前阈值下的真实结果，尤其是单 HLA 试跑。下载全窗口报告检查输入、参数及两类覆盖率。默认参数不代表历史论文参数，软件运行成功不等于历史结果已经复现。</p></details><details><summary>如何恢复中断任务？</summary><p>进入“任务记录”，打开原预测任务，点击“恢复”。已完成且校验有效的预测批次会复用。在线与本地任务不能混合恢复，不能同时修改模型、HLA、FASTA 和筛选参数。</p></details><details><summary>文件在哪里？需要作者电脑在线吗？</summary><p>文件保存在“首次配置”显示的本机数据位置，不依赖作者服务器。程序更新后仍使用相同数据目录。在线模式只向 IEDB 官方服务发送必要预测输入。</p></details><details><summary>安装失败怎么办？</summary><p>打开配置日志查看具体原因，检查网络、磁盘空间和系统授权。Ubuntu/Debian 桌面通常使用 pkexec 弹出授权窗口；若系统不提供图形授权，请管理员先安装页面列出的系统组件。断网时无法进行首次下载。</p></details><details><summary>Windows 能用这个本地包吗？</summary><p>当前一键本地配置支持 Linux x86_64。Windows 可继续使用现有在线/导入表版本；Linux 预测器不能由纯 HTML 直接变成 Windows 程序。</p></details>
+<div class="guide-footer">这份说明与页面均包含在程序中。日常本地操作不需要加载任何外部网页资源。</div></article></section>
+</main><footer>Epitope Screening · 本机研究工具 <span>结果由所选模型与参数决定，请保留原始记录。</span></footer></div></div>
+<div id="toast" class="toast" role="status" hidden></div>
+</body></html>

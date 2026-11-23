@@ -1,10 +1,23 @@
 # Epitope Screening · 表位筛选
 
-Windows / Linux 桌面软件：**FASTA → IEDB 官方 API 预测 → 本地阈值筛选 → 窗口与人群覆盖率 → Excel / CSV 报告**。
+Windows / Linux 桌面与 Linux 本地网页软件：**FASTA → IEDB 官方 API 预测 → 本地阈值筛选 → 窗口与人群覆盖率 → Excel / CSV 报告**。
 
 0.2 版新增在线预测，同时保留导入预测表的离线筛选。联网预测无需 Docker、WSL、IEDB 工具包或自己的预测服务器；序列由用户电脑直接发送至 IEDB 官方服务器，本地负责筛选与覆盖率计算。软件不会在后台自动提交，只有点击开始或执行 `online` 命令才会发送序列。
 
 **0.3.0b1 新增 Linux 本地预测（测试版）**：首次配置后，可用本机 IEDB TC1/TC2 从 FASTA 开始完成预测、免疫原性评分和筛选，不调用 API。全新 Ubuntu/Debian x86_64 用户请下载源码并按[本地安装说明](docs/LOCAL_LINUX.md)操作；首次仍需按官方许可获取两个工具包。无需 Docker、Conda 或作者电脑在线。Windows 本地预测尚未接入，Windows 可继续使用在线或导入表模式。
+
+## 新用户推荐：Linux 网页版 v0.4.0b1
+
+下载 **[Web-Linux-x64 发布包](https://github.com/cmjlabs/epitope-screening/releases/tag/v0.4.0b1)** → 完整解压 → 双击 **Start-Web** → 在浏览器操作。
+
+- 无需安装 Python / Docker / Conda。先点“试用离线演示”，即可生成并下载 Excel。
+- 从 FASTA 本地预测：进入“首次配置”，按提示阅读许可、授权所需系统组件，程序自动下载并配置官方 IEDB、独立 Python 和依赖。首次联网，模型约 2.4 GB，建议预留 12 GB；配置完成后本地预测可断网。
+- 页面提供本地预测、IEDB 在线、导入预测表、参数设置、进度日志、任务恢复、结果预览和 Excel / CSV 下载。
+- 面向 Ubuntu 22.04 / 24.04 或兼容 Debian 桌面、Linux x86_64；Windows 本地预测尚未支持。
+
+**[详细新手说明](docs/WEB_BEGINNER.md)**。压缩包自带可双击阅读的 `先看这里.html`，程序内也有“使用说明”。单独 HTML 用于阅读；预测时需运行同包的 Start-Web。模型按官方许可另行获取，不直接上传到 GitHub。
+
+仓库目前为 **Private**：其他用户需要读取权限才能下载。GitHub 的 Source code ZIP 是开发者源码；普通用户请选择 Assets 中的 Web-Linux-x64.tar.gz。
 
 ## Windows 使用
 

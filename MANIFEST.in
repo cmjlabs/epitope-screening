@@ -5,3 +5,6 @@ recursive-include examples *.json *.csv *.fasta
 recursive-include tests *.py
 recursive-include tests/fixtures *.json
 recursive-include scripts *.py
+
+include launch_web.py EpitopeScreeningWeb.spec start_web_linux.sh
+recursive-include epitope_screening/web *.html *.css *.js *.txt *.fasta *.csv

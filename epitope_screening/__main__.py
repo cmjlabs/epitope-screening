@@ -47,6 +47,8 @@ def main():
     web.add_argument('--data-dir', type=Path)
     web.add_argument('--port', type=int, default=0)
     web.add_argument('--no-browser', action='store_true')
+    web.add_argument('--smoke-test', action='store_true', help=argparse.SUPPRESS)
+    web.add_argument('--smoke-test-local', action='store_true', help=argparse.SUPPRESS)
     args = parser.parse_args()
     if args.command in (None, 'gui'):
         from .gui import main as gui_main
@@ -58,6 +60,10 @@ def main():
             options += ['--data-dir',str(args.data_dir)]
         if args.no_browser:
             options += ['--no-browser']
+        if args.smoke_test:
+            options += ['--smoke-test']
+        if args.smoke_test_local:
+            options += ['--smoke-test-local']
         web_main(options)
     elif args.command == 'populations':
         print('\n'.join(populations()))

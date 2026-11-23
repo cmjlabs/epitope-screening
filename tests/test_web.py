@@ -8,6 +8,8 @@ import tempfile
 import threading
 import time
 import unittest
+import zipfile
+import hashlib
 from unittest.mock import patch
 import urllib.error
 import urllib.parse
@@ -80,10 +82,63 @@ class WebTests(unittest.TestCase):
         restarted = Application(self.root)
         self.assertNotEqual(restarted.token,self.server.app.token)
         self.assertEqual(restarted.task(task['id'])['status'],'complete')
+        code, raw = self.request('/api/bundle?id='+task['id'])
+        self.assertEqual(code,200)
+        with zipfile.ZipFile(io.BytesIO(raw)) as archive:
+            self.assertIsNone(archive.testzip())
+            names = archive.namelist()
+            self.assertIn('先看这里.html',names)
+            for cls in ('mhci','mhcii'):
+                for stage in ('step0_raw','step1_ic50','step2_rank','step3_score_min','step4_score_max','final'):
+                    self.assertTrue(any(n.endswith(f'{cls}/{stage}.csv') for n in names), (cls,stage))
+            for suffix in ('inputs/cutoff.csv','inputs/fasta.fasta','coverage_step1_mhci.csv','coverage_step2_mhcii.csv','filter_summary.csv'):
+                self.assertTrue(any(n.endswith(suffix) for n in names),suffix)
+            sums = archive.read('SHA256SUMS.txt').decode().splitlines()
+            for line in sums:
+                checksum, name = line.split('  ',1)
+                self.assertEqual(checksum,hashlib.sha256(archive.read(name)).hexdigest())
+            self.assertEqual(json.loads(archive.read('task_record.json'))['status'],'complete')
+            def csv(suffix):
+                return pd.read_csv(io.BytesIO(archive.read(next(n for n in names if n.endswith(suffix)))))
+            summary=csv('filter_summary.csv')
+            self.assertEqual(len(summary),14)
+            for cls in ('I','II'):
+                stages=summary[(summary['class']==cls)&(summary.stage!='final')]
+                self.assertTrue((stages.remaining_rows.diff().dropna()<=0).all())
+            pd.testing.assert_frame_equal(csv('selected_windows.csv'),csv('coverage_step2_mhcii.csv'))
+        # Native browser download streams the ZIP via a short-lived, single-use link.
+        code, link = self.request('/api/bundle-link',{'id':task['id']})
+        self.assertEqual(code,200)
+        self.assertEqual(self.request(link['url'],token=False)[0],200)
+        self.assertEqual(self.request(link['url'],token=False)[0],400)
+        self.assertEqual(self.request('/api/bundle-link',{'id':task['id']},token=False)[0],403)
         # Reports outside the current task are never downloadable.
         for name in ('../../../../session.json','/etc/passwd','../task.json'):
             code, _ = self.request('/api/file?'+urllib.parse.urlencode({'id':task['id'],'name':name}))
             self.assertEqual(code,400)
+
+    def test_failed_run_download_keeps_partial_outputs(self):
+        payload={'mode':'offline'}
+        for kind,name in [('fasta','protein.fasta'),('mhci','mhci.csv'),('mhcii','mhcii.csv')]:
+            raw=(ASSETS/'examples'/name).read_bytes()
+            if kind=='mhcii': raw=raw.replace(b'score',b'missing_score')
+            code, record=self.request('/api/upload?'+urllib.parse.urlencode({'kind':kind,'name':name}),raw)
+            self.assertEqual(code,200)
+            payload[kind]=record['id']
+        code,task=self.request('/api/start',payload)
+        self.assertEqual(code,202)
+        deadline=time.monotonic()+30
+        while time.monotonic()<deadline:
+            task=self.request('/api/task?id='+task['id'])[1]
+            if task['status'] not in ('running','cancelling'):break
+            time.sleep(.05)
+        self.assertEqual(task['status'],'failed')
+        code,raw=self.request('/api/bundle?id='+task['id'])
+        self.assertEqual(code,200)
+        with zipfile.ZipFile(io.BytesIO(raw)) as archive:
+            self.assertEqual(json.loads(archive.read('task_record.json'))['status'],'failed')
+            self.assertTrue(any(n.endswith('mhci/step4_score_max.csv') for n in archive.namelist()))
+            self.assertFalse(any(n.endswith('results.xlsx') for n in archive.namelist()))
 
     def test_loopback_session_and_origin_boundaries(self):
         self.assertEqual(self.request('/')[0],200)

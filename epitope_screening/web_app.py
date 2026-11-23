@@ -29,6 +29,7 @@ from .core import Settings, Cancelled, read_sequence, run_analysis, populations
 from .iedb_api import PredictionSettings, run_online, write_json
 from .local_iedb import external_environment, run_local
 from .web_setup import SetupWizard, ASSETS
+from .report_bundle import build_result_bundle
 
 ID = re.compile(r'^[a-f0-9]{32}$')
 UPLOAD_SUFFIXES = {'fasta': {'.fasta','.fa','.faa','.txt'}, 'mhci': {'.csv','.tsv','.txt','.xlsx'},
@@ -50,6 +51,7 @@ class Application:
         self.token = secrets.token_urlsafe(32)
         self.lock = threading.RLock()
         self.tasks = {}
+        self.download_tickets = {}
         self.stops = {}
         self.threads = {}
         self.wizard = SetupWizard(self.root)
@@ -181,6 +183,8 @@ class Application:
                 task['logs'] = (task['logs']+[message])[-1200:]
                 if time.monotonic()-last_save[0]>2:
                     self.save(task);last_save[0]=time.monotonic()
+        outcome = 'complete'
+        final_message = '分析完成，完整结果包已保存在本机'
         try:
             settings = Settings(**request['settings'])
             prediction = PredictionSettings(**request['prediction'])
@@ -207,13 +211,15 @@ class Application:
             report = json.loads((report_dir/'run_manifest.json').read_text(encoding='utf-8'))
             preview = pd.read_csv(report_dir/'selected_windows.csv',nrows=30)
             with self.lock:
-                task.update(run_directory=str(result),report_directory=str(report_dir),status='complete',progress=100,message='分析完成，报告已保存在本机',
+                task.update(run_directory=str(result),report_directory=str(report_dir),progress=99,message='正在整理原始预测、中间筛选与最终结果包',
                 summary={'windows':report['window_count'],'selected':report['selected_count'],
                     'preview':json.loads(preview.to_json(orient='records',force_ascii=False))},
                 files=[str(p.relative_to(result)) for p in sorted(result.rglob('*')) if p.is_file() and p.suffix in ('.xlsx','.csv','.json','.log')])
         except Exception as error:
             with self.lock:
-                task.update(status='cancelled' if isinstance(error,Cancelled) else 'failed',message=str(error))
+                outcome = 'cancelled' if isinstance(error,Cancelled) else 'failed'
+                final_message = str(error)
+                task.update(message='正在保存本次已生成的结果和日志')
                 task['logs'] = (task['logs']+[str(error)])[-1200:]
                 if task['mode']!='offline':
                     prefix = 'local_' if task['mode']=='local' else 'online_'
@@ -223,7 +229,41 @@ class Application:
         finally:
             with self.lock:
                 task['elapsed_seconds'] = round(time.time()-task['started'],2)
+                record = json.loads(json.dumps({**task, 'status':outcome, 'message':final_message}))
+            try:
+                build_result_bundle(folder, record)
+                with self.lock:
+                    task['bundle'] = True
+            except Exception as error:
+                outcome = 'failed'
+                final_message += '；完整结果包生成失败：'+str(error)
+            with self.lock:
+                task.update(status=outcome,message=final_message,elapsed_seconds=round(time.time()-task['started'],2))
+                if outcome=='complete':
+                    task['progress'] = 100
                 self.save(task)
+
+    def bundle_path(self, task_id):
+        self.task(task_id)
+        path = self.root/'jobs'/task_id/'complete_results.zip'
+        if not self.tasks[task_id].get('bundle') or not path.is_file():
+            raise ValueError('完整结果包尚未生成，请等待任务停止后重试。')
+        return path
+
+    def issue_bundle_link(self, task_id):
+        self.bundle_path(task_id)
+        with self.lock:
+            self.download_tickets = {key:value for key,value in self.download_tickets.items() if value[1]>time.monotonic()}
+            ticket = secrets.token_urlsafe(32)
+            self.download_tickets[ticket] = (task_id,time.monotonic()+60)
+        return {'url':'/download/bundle?ticket='+ticket}
+
+    def consume_bundle_link(self, ticket):
+        with self.lock:
+            task_id, expires = self.download_tickets.pop(ticket, (None,0))
+        if not task_id or expires<time.monotonic():
+            raise ValueError('下载链接已过期或已使用，请重新点击完整结果包按钮。')
+        return self.bundle_path(task_id)
 
     def resume(self, task_id):
         with self.lock:
@@ -235,7 +275,7 @@ class Application:
                 raise ValueError('导入表模式无需恢复预测，请新建分析。')
             if task['mode']=='local' and not self.wizard.snapshot()['ready']:
                 raise ValueError('请先完成本地环境配置。')
-            task.update(status='running',started=time.time(),message='正在恢复任务')
+            task.update(status='running',started=time.time(),message='正在恢复任务',bundle=False)
             self.save(task)
             self._spawn(task)
             return self.task(task_id)
@@ -314,8 +354,13 @@ class Handler(BaseHTTPRequestHandler):
                 self.json_out(app.state())
             elif parsed.path=='/api/task':
                 self.json_out(app.task(query.get('id',[''])[0]))
-            elif parsed.path=='/api/file':
-                path = app.download_path(query.get('id',[''])[0],query.get('name',[''])[0])
+            elif parsed.path in ('/api/file','/api/bundle','/download/bundle'):
+                if parsed.path=='/download/bundle':
+                    path = app.consume_bundle_link(query.get('ticket',[''])[0])
+                elif parsed.path=='/api/bundle':
+                    path = app.bundle_path(query.get('id',[''])[0])
+                else:
+                    path = app.download_path(query.get('id',[''])[0],query.get('name',[''])[0])
                 self.headers_out(mimetypes.guess_type(path.name)[0] or 'application/octet-stream',path.stat().st_size,
                     extra={'Content-Disposition':"attachment; filename*=UTF-8''"+urllib.parse.quote(path.name)})
                 with path.open('rb') as stream:
@@ -373,6 +418,8 @@ class Handler(BaseHTTPRequestHandler):
                 self.json_out(app.start_task(body),202)
             elif parsed.path=='/api/demo':
                 self.json_out(app.start_task({'mode':'offline'},demo=True),202)
+            elif parsed.path=='/api/bundle-link':
+                self.json_out(app.issue_bundle_link(body.get('id')))
             elif parsed.path=='/api/resume':
                 self.json_out(app.resume(body.get('id')),202)
             elif parsed.path=='/api/cancel':
@@ -433,6 +480,13 @@ def smoke_test(root, local=False):
                 with urllib.request.urlopen(request) as response:
                     if not response.read(2)==b'PK':
                         raise ValueError('报告下载失败。')
+                import zipfile
+                import io
+                with urllib.request.urlopen(urllib.request.Request(url+'/api/bundle?id='+task['id'],headers=headers)) as response:
+                    with zipfile.ZipFile(io.BytesIO(response.read())) as bundle:
+                        names = bundle.namelist()
+                        if bundle.testzip() or not any(name.endswith('mhcii/step4_score_max.csv') for name in names):
+                            raise ValueError('完整结果包缺少中间筛选结果。')
                 print(json.dumps({'status':'passed','mode':value['mode'],'summary':value['summary'],'task_id':task['id']},ensure_ascii=False))
                 return
             time.sleep(.2)

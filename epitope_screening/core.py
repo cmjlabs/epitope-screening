@@ -7,6 +7,7 @@ import math
 from pathlib import Path
 import platform
 import re
+import shutil
 import uuid
 
 import numpy as np
@@ -254,7 +255,14 @@ def run_analysis(fasta, mhci, mhcii, output_root, settings=None, cutoff=None, pr
         (output / 'run_manifest.json').write_text(json.dumps(manifest, ensure_ascii=False, indent=2), encoding='utf-8')
     write_manifest()
     try:
+        snapshots = output / 'inputs'
+        snapshots.mkdir()
+        for name, source in input_files.items():
+            target = snapshots / (name + source.suffix.lower())
+            shutil.copyfile(source, target)
+            manifest['inputs'][name]['snapshot'] = str(target.relative_to(output))
         frames = {}
+        step_summary = []
         for index, (cls, source) in enumerate([('I', mhci), ('II', mhcii)]):
             check_stop()
             progress(index * 10, f'读取与筛选 MHC-{cls} 预测表…')
@@ -263,6 +271,19 @@ def run_analysis(fasta, mhci, mhcii, output_root, settings=None, cutoff=None, pr
             frames[cls] = frame
             manifest['step_counts_' + cls] = counts
             manifest['warnings'].extend(warnings)
+            tag = 'i' if cls == 'I' else 'ii'
+            rules = [
+                ('step0_raw', '标准化输入（尚未筛选）'),
+                ('step1_ic50', 'IC50 <= 等位基因专属 cutoff，缺少映射者移除' if cls == 'I' and settings.use_allele_cutoff else f'IC50 <= {getattr(settings, "ic50_"+tag)} nM'),
+                ('step2_rank', f'rank <= {getattr(settings, "rank_"+tag)}%'),
+                ('step3_score_min', f'score {">" if cls == "I" and settings.score_i_strict_min else ">="} {getattr(settings, "score_"+tag+"_min")}'),
+                ('step4_score_max', f'score <= {getattr(settings, "score_"+tag+"_max")}'),
+                ('final', '拆分 HLA 链并按序列、坐标、HLA 去重（行数可能增加）')]
+            before = counts['raw']
+            for name, rule in rules:
+                step_summary.append({'class': cls, 'stage': name, 'rule': rule, 'input_rows': before,
+                    'remaining_rows': counts[name], 'file': f'{"mhci" if cls == "I" else "mhcii"}/{name}.csv'})
+                before = counts[name]
         check_stop()
         calculator = CoverageCalculator(settings.population)
         rows = []
@@ -285,14 +306,25 @@ def run_analysis(fasta, mhci, mhcii, output_root, settings=None, cutoff=None, pr
                     progress(20 + int(70 * len(rows) / total), f'窗口 {size} aa：{len(rows)}/{total}')
         all_windows = pd.DataFrame(rows)
         # Retain full precision for numerical reuse; selection follows the historical 4-decimal display convention.
-        selected = all_windows[(all_windows.mhc1_coverage.round(4) >= settings.coverage_threshold) &
-                               (all_windows.mhc2_coverage.round(4) >= settings.coverage_threshold)].copy()
+        coverage_i = all_windows[all_windows.mhc1_coverage.round(4) >= settings.coverage_threshold].copy()
+        selected = coverage_i[coverage_i.mhc2_coverage.round(4) >= settings.coverage_threshold].copy()
+        coverage_i.to_csv(output / 'coverage_step1_mhci.csv', index=False, encoding='utf-8-sig')
+        selected.to_csv(output / 'coverage_step2_mhcii.csv', index=False, encoding='utf-8-sig')
+        for cls, before, after, name in [('I',len(all_windows),len(coverage_i),'coverage_step1_mhci'),
+                                        ('II',len(coverage_i),len(selected),'coverage_step2_mhcii')]:
+            step_summary.append({'class': 'window_'+cls, 'stage': name,
+                'rule': f'MHC-{cls} coverage rounded(4) >= {settings.coverage_threshold}',
+                'input_rows': before, 'remaining_rows': after, 'file': name+'.csv'})
+        summary_frame = pd.DataFrame(step_summary)
+        summary_frame.to_csv(output / 'filter_summary.csv', index=False, encoding='utf-8-sig')
+        settings_frame = pd.DataFrame([{'parameter':key,'value':str(value)} for key,value in asdict(settings).items()])
+        settings_frame.to_csv(output / 'screening_settings.csv', index=False, encoding='utf-8-sig')
         all_windows.to_csv(output / 'all_windows.csv', index=False, encoding='utf-8-sig')
         selected.to_csv(output / 'selected_windows.csv', index=False, encoding='utf-8-sig')
         check_stop()
         progress(95, '导出 Excel 和运行记录…')
         with pd.ExcelWriter(output / 'results.xlsx', engine='openpyxl') as writer:
-            for name, frame in [('all_windows', all_windows), ('selected_windows', selected), ('mhci_filtered', frames['I']), ('mhcii_filtered', frames['II'])]:
+            for name, frame in [('all_windows', all_windows), ('selected_windows', selected), ('mhci_filtered', frames['I']), ('mhcii_filtered', frames['II']), ('filter_summary',summary_frame), ('settings',settings_frame)]:
                 frame.to_excel(writer, sheet_name=name, index=False)
                 writer.sheets[name].freeze_panes = 'A2'
                 writer.sheets[name].auto_filter.ref = writer.sheets[name].dimensions
@@ -301,7 +333,7 @@ def run_analysis(fasta, mhci, mhcii, output_root, settings=None, cutoff=None, pr
         manifest.update(status='complete', window_count=len(all_windows), selected_count=len(selected),
                         selection_rule='both class coverages rounded to 4 decimals >= threshold',
                         unsupported_frequency_alleles=[{'class': c, 'allele': a} for c, a in sorted(calculator.unsupported)])
-        manifest['outputs'] = {p.name: sha256(p) for p in output.iterdir() if p.is_file() and p.name != 'run_manifest.json'}
+        manifest['outputs'] = {str(p.relative_to(output)): sha256(p) for p in output.rglob('*') if p.is_file() and p.name != 'run_manifest.json'}
         write_manifest()
         progress(100, f'完成：{len(selected)} 个候选窗口。结果：{output}')
         return output

@@ -112,7 +112,7 @@ class ScreeningTests(unittest.TestCase):
             self.assertEqual(manifest['selected_count'], 21)
             self.assertEqual(len(manifest['inputs']['fasta']['sha256']), 64)
             report = pd.read_excel(a / 'results.xlsx', sheet_name=None)
-            self.assertEqual(set(report), {'all_windows', 'selected_windows', 'mhci_filtered', 'mhcii_filtered'})
+            self.assertEqual(set(report), {'all_windows', 'selected_windows', 'mhci_filtered', 'mhcii_filtered', 'filter_summary', 'settings'})
             empty = report['all_windows'].iloc[-1]
             self.assertEqual(empty.mhc1_coverage, 0)
             self.assertTrue((a / 'mhci/step1_ic50.csv').exists())

@@ -1,10 +1,8 @@
 # Epitope Screening · 表位筛选
 
-Windows / Linux 桌面与 Linux 本地网页软件：**FASTA → IEDB 官方 API 预测 → 本地阈值筛选 → 窗口与人群覆盖率 → Excel / CSV 报告**。
+支持从 FASTA 开始预测 MHC-I / MHC-II 表位，再完成阈值筛选、长肽窗口、人群覆盖率和 Excel / CSV 导出。
 
-0.2 版新增在线预测，同时保留导入预测表的离线筛选。联网预测无需 Docker、WSL、IEDB 工具包或自己的预测服务器；序列由用户电脑直接发送至 IEDB 官方服务器，本地负责筛选与覆盖率计算。软件不会在后台自动提交，只有点击开始或执行 `online` 命令才会发送序列。
-
-**0.3.0b1 新增 Linux 本地预测（测试版）**：首次配置后，可用本机 IEDB TC1/TC2 从 FASTA 开始完成预测、免疫原性评分和筛选，不调用 API。全新 Ubuntu/Debian x86_64 用户请下载源码并按[本地安装说明](docs/LOCAL_LINUX.md)操作；首次仍需按官方许可获取两个工具包。无需 Docker、Conda 或作者电脑在线。Windows 本地预测尚未接入，Windows 可继续使用在线或导入表模式。
+**Linux 推荐使用本地网页版**：页面操作，首次自动配置 IEDB 后在本机计算。Windows 版继续提供 IEDB 官方 API 与导入预测表两种方式。两者均不依赖作者电脑或原网站在线。
 
 ## 新用户推荐：Linux 网页版 v0.4.0b1
 

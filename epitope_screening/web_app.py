@@ -55,7 +55,7 @@ class Application:
         self.wizard = SetupWizard(self.root)
         for path in (self.root/'jobs').glob('*/task.json'):
             try:
-                task = json.loads(path.read_text())
+                task = json.loads(path.read_text(encoding='utf-8'))
                 if not ID.fullmatch(task['id']):
                     continue
                 if task['status'] in ('running','cancelling'):
@@ -74,14 +74,14 @@ class Application:
         return {'version': __version__, 'data_directory': str(self.root), 'setup': self.wizard.snapshot(),
             'tasks': jobs, 'defaults': {'settings': asdict(Settings()), 'prediction': asdict(PredictionSettings())},
             'populations': populations(),
-            'public_fasta': (ASSETS/'examples/public_lcmv.fasta').read_text(),
+            'public_fasta': (ASSETS/'examples/public_lcmv.fasta').read_text(encoding='utf-8'),
             'small_prediction': asdict(PredictionSettings(alleles_i=['HLA-A*02:01'],alleles_ii=['HLA-DRB1*01:01'],min_length_i=9,max_length_i=9))}
 
     def upload_path(self, upload_id, kind):
         if not isinstance(upload_id,str) or not ID.fullmatch(upload_id):
             raise ValueError('请选择需要的文件。')
         folder = self.root/'uploads'/upload_id
-        record = json.loads((folder/'upload.json').read_text())
+        record = json.loads((folder/'upload.json').read_text(encoding='utf-8'))
         if record['kind'] != kind:
             raise ValueError('文件类型与当前用途不匹配，请重新选择。')
         return folder/('file'+record['suffix'])
@@ -191,7 +191,7 @@ class Application:
                 found = sorted((folder/'output').glob(prefix+'*'))
                 resume = str(found[-1]) if found else None
             if task['mode']=='local':
-                config = json.loads((self.root/'local-tools.json').read_text())
+                config = json.loads((self.root/'local-tools.json').read_text(encoding='utf-8'))
                 result = run_local(*args,config,settings,prediction,inputs.get('cutoff'),progress,stop,resume)
                 manifest_name = 'local_manifest.json'
             elif task['mode']=='online':
@@ -202,9 +202,9 @@ class Application:
                 manifest_name = None
             report_dir = result
             if manifest_name:
-                manifest = json.loads((result/manifest_name).read_text())
+                manifest = json.loads((result/manifest_name).read_text(encoding='utf-8'))
                 report_dir = result/manifest['screening_directory']
-            report = json.loads((report_dir/'run_manifest.json').read_text())
+            report = json.loads((report_dir/'run_manifest.json').read_text(encoding='utf-8'))
             preview = pd.read_csv(report_dir/'selected_windows.csv',nrows=30)
             with self.lock:
                 task.update(run_directory=str(result),report_directory=str(report_dir),status='complete',progress=100,message='分析完成，报告已保存在本机',
@@ -417,7 +417,7 @@ def smoke_test(root, local=False):
             return json.load(response)
     try:
         if local:
-            payload = {'name':'本地网页验证','mode':'local','fasta_text':(ASSETS/'examples/public_lcmv.fasta').read_text(),
+            payload = {'name':'本地网页验证','mode':'local','fasta_text':(ASSETS/'examples/public_lcmv.fasta').read_text(encoding='utf-8'),
                 'prediction':asdict(PredictionSettings(alleles_i=['HLA-A*02:01'],alleles_ii=['HLA-DRB1*01:01'],min_length_i=9,max_length_i=9))}
             task = post('/api/start',payload)
         else:
@@ -459,7 +459,7 @@ def main(argv=None):
         try:
             fcntl.flock(lock_file,fcntl.LOCK_EX|fcntl.LOCK_NB)
         except BlockingIOError:
-            session = json.loads((args.data_dir/'session.json').read_text())
+            session = json.loads((args.data_dir/'session.json').read_text(encoding='utf-8'))
             if not args.no_browser:
                 open_browser(session['url'])
             print('程序已运行。请在已打开的浏览器页面操作。',flush=True);return

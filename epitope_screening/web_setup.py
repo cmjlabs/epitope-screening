@@ -58,7 +58,7 @@ class SetupWizard:
         config = self.root / 'local-tools.json'
         if config.is_file():
             try:
-                value = json.loads(config.read_text())
+                value = json.loads(config.read_text(encoding='utf-8'))
                 self.state['ready'] = Path(value['python']).is_file() and all(Path(value[k]).is_dir() for k in ('tc1','tc2'))
                 if self.state['ready']:
                     self.state.update(stage='本地环境已配置', progress=100)
@@ -83,12 +83,12 @@ class SetupWizard:
                 raise ValueError('首次配置正在进行，请等待完成。')
             if platform.system() != 'Linux' or platform.machine() != 'x86_64':
                 raise ValueError('本地配置目前支持 Linux x86_64；其他平台可使用在线或导入表模式。')
-            if action != 'check' and any(c.isspace() or c in "'\"`$;&|<>(){}*?[]\\!" for c in str(self.root)):
-                raise ValueError('本地模型的数据目录不能含空格或 shell 特殊字符。请使用默认用户数据位置。')
             if action != 'check' and not license_accepted:
                 raise ValueError('请先阅读官方许可，并确认你有权使用这些预测工具。')
             if action != 'check' and missing_system() and not system_accepted:
                 raise ValueError('需要安装系统组件。请勾选允许系统授权；密码只在系统授权窗口输入。')
+            if action != 'check' and any(c.isspace() or c in "'\"`$;&|<>(){}*?[]\\!" for c in str(self.root)):
+                raise ValueError('本地模型的数据目录不能含空格或 shell 特殊字符。请使用默认用户数据位置。')
             self.state.update(busy=True, error=None, progress=0, stage='准备配置')
             if action != 'check':
                 self.state['ready'] = False
@@ -142,7 +142,7 @@ class SetupWizard:
     def _work(self, action, archives, accepted):
         try:
             if action == 'check':
-                validate_runtime(json.loads((self.root / 'local-tools.json').read_text()))
+                validate_runtime(json.loads((self.root / 'local-tools.json').read_text(encoding='utf-8')))
             else:
                 allocated = sum(p.stat().st_size for name in ('uploads','downloads','tools','runtime')
                     for p in (self.root/name).rglob('*') if p.is_file() and not p.is_symlink())
